@@ -11,6 +11,12 @@ package models.application;
  */
 public class ApplicationStatus {
 
+    // Lazy optimization :)
+    public static final int PENDING = 1;
+    public static final int ACCEPTED = 2;
+    public static final int REJECTED = 3;
+    public static final int CANCELED = 4;
+
     private int applicationStatusId;
     private String name;
 

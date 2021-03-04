@@ -127,6 +127,7 @@
                 </div>
             </div>
         </div>
+        <%@include file="back_to_top.html" %>
         <%@include file="footer.html" %>
     </body>
 </html>

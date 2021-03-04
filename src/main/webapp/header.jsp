@@ -8,7 +8,7 @@
 <%@page import="filters.AuthFilter"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-    <a class="navbar-brand" href="./">Jobinder <img src="https://www.shareicon.net/data/128x128/2015/09/03/95418_social_512x512.png" width="30" height="30" alt=""></a>
+    <a class="navbar-brand" href="./">Jobinder <img src="images/icon.png" width="30" height="30" alt=""></a>
     <ul class="navbar-nav navbar-collapse justify-content-end">
         <li><a id="jobs" href="jobs" class="nav-link mx-1">Việc làm</a></li>
         <li><a id="resumes" href="resumes" class="nav-link">Lý lịch</a></li>

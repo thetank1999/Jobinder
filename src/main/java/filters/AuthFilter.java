@@ -5,6 +5,7 @@
  */
 package filters;
 
+import dao.JobDao;
 import dao.ResumeDao;
 import exceptions.DaoException;
 import java.io.IOException;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import models.account.Account;
+import models.job.Job;
 import models.resume.Resume;
 
 /**
@@ -52,15 +54,20 @@ public class AuthFilter implements Filter {
                 if (resumeId != null) {
                     ResumeDao resumeDao = new ResumeDao();
                     Optional<Resume> opResume = resumeDao.getResume(Integer.parseInt(resumeId));
-                    if (opResume.isPresent() && opResume.isPresent() && opResume.get().getAccountId() != account.getAccountId()) {
+                    if (opResume.isPresent() && opResume.get().getAccountId() != account.getAccountId()) {
                         request.getRequestDispatcher("unauthorized.html").forward(request, response);
                         return;
                     }
                 }
                 String jobId = request.getParameter("jobId");
 
-                if (jobId != null) {
-                    // Check authorization
+                if (jobId != null && !httpRequest.getParameter("action").equals("apply")) {
+                    JobDao jobDao = new JobDao();
+                    Optional<Job> opJob = jobDao.getJob(Integer.parseInt(jobId));
+                    if (opJob.isPresent() && opJob.get().getAccountId() != account.getAccountId()) {
+                        request.getRequestDispatcher("unauthorized.html").forward(request, response);
+                        return;
+                    }
                 }
                 chain.doFilter(request, response);
 

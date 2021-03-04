@@ -46,10 +46,10 @@
             </div>
             <h1 class="text-center display-4 mt-5"><%=resume.getTitle()%></h1>
             <div class="row p-5" >
-                <div class="col-3">
+                <div class="col-lg-3">
                     <h3>Thông tin lý lịch</h3>
                 </div>
-                <div class="col-9">
+                <div class="col-lg-9">
                     <table class="table table-responsive">
                         <tbody>
                             <tr>
@@ -85,6 +85,7 @@
                 </div>
             </div>
         </div>
+        <%@include file="back_to_top.html" %>
         <%@include file="footer.html" %>
     </body>
 </html>

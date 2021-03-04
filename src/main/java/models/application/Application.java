@@ -17,8 +17,9 @@ public class Application implements Serializable {
     private int applicationId;
     private int resumeId;
     private int jobId;
+    private String message;
     private int statusId;
-    private LocalDate creationTime;
+    private LocalDate createdDate;
 
     public int getApplicationId() {
         return applicationId;
@@ -52,12 +53,20 @@ public class Application implements Serializable {
         this.statusId = statusId;
     }
 
-    public LocalDate getCreationTime() {
-        return creationTime;
+    public LocalDate getCreatedTime() {
+        return createdDate;
     }
 
-    public void setCreationTime(LocalDate creationTime) {
-        this.creationTime = creationTime;
+    public void setCreatedTime(LocalDate createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
 }

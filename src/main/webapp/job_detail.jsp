@@ -4,6 +4,7 @@
     Author     : Admin
 --%>
 
+<%@page import="models.account.AccountType"%>
 <%@page import="utils.CurrencyUtils"%>
 <%@page import="models.job.JobType"%>
 <%@page import="models.common.Field"%>
@@ -49,10 +50,10 @@
             </div>
             <h1 class="text-center display-4 mt-5"><%=job.getTitle()%></h1>
             <div class="row p-5" >
-                <div class="col-3">
+                <div class="col-md-3">
                     <h3>Thông tin công việc</h3>
                 </div>
-                <div class="col-9">
+                <div class="col-md-9">
                     <table class="table table-responsive">
                         <tbody>
                             <tr>
@@ -88,10 +89,10 @@
                 </div>
             </div>
             <div class="row p-5" >
-                <div class="col-3">
+                <div class="col-md-3">
                     <h3>Thông tin doanh nghiệp</h3>
                 </div>
-                <div class="col-9 row" style="overflow: hidden; position: relative;">
+                <div class="col-md-9 row" style="overflow: hidden; position: relative;">
                     <div class="col-3">
                         <img class="img-fluid img-thumbnail" src="<%=job.getCompany().getImageUri()%>" style="width: 10vw; height: 10vw; object-fit: cover;">
                     </div>
@@ -102,7 +103,13 @@
                     </div>
                 </div>
             </div>
+            <%if (request.getAttribute("resumes") != null) {%>
+            <%@include file="apply_job.jsp" %>
+            <%} else {%>
+            <p class="text-secondary text-center mt-3">Bạn phải có tài khoản kiếm việc mới có thể ứng tuyển cho công việc này</p>
+            <%}%>
         </div>
+        <%@include file="back_to_top.html" %>
         <%@include file="footer.html" %>
     </body>
 </html>

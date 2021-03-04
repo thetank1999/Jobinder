@@ -29,13 +29,17 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import dao.FilterableJobDao;
+import dao.ResumeDao;
 import models.account.Account;
+import models.account.AccountType;
 import models.common.AcademicLevel;
 import models.common.Field;
 import models.common.Language;
 import models.common.Location;
 import models.job.Job;
 import models.job.JobType;
+import utils.NotificationType;
+import utils.NotificationUtils;
 
 /**
  *
@@ -123,6 +127,17 @@ public class JobListController extends HttpServlet {
         request.setAttribute("jobAcademicLevel", jobLevel);
         request.setAttribute("jobField", jobField);
 
+        Account viewerAccount = ((Account) request.getSession().getAttribute("account"));
+
+        if (viewerAccount != null && viewerAccount.getAccountTypeId() == AccountType.JOB_SEEKER) {
+            ResumeDao resumeDao = new ResumeDao();
+            request.setAttribute("resumes", resumeDao.getResumesOfAccount(viewerAccount.getAccountId()));
+        }
+
+        if (request.getParameter("notif") != null) {
+            handleNotifications(request);
+        }
+
         request.getRequestDispatcher("job_detail.jsp").forward(request, response);
     }
 
@@ -170,5 +185,14 @@ public class JobListController extends HttpServlet {
             jobFilter.setMinLevelId(levelId);
         }
         return jobFilter;
+    }
+
+    private void handleNotifications(HttpServletRequest request) {
+        String notif = request.getParameter("notif");
+        if (notif.equals("1")) {
+            NotificationUtils.setNotification(request, NotificationType.error, "You already have a pending application for this job");
+        } else if (notif.equals("2")) {
+            NotificationUtils.setNotification(request, NotificationType.success, "Your application is successfully submitted");
+        }
     }
 }

@@ -6,6 +6,7 @@
 package controllers;
 
 import dao.AcademicLevelDao;
+import dao.ApplicationDao;
 import dao.CompanyDao;
 import dao.FieldDao;
 import dao.JobDao;
@@ -33,6 +34,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import models.account.Account;
 import models.account.AccountType;
+import models.application.Application;
+import models.application.ApplicationStatus;
 import models.common.Language;
 import models.common.WorkDetails;
 import models.job.Company;
@@ -53,7 +56,7 @@ import validation.ModelValidator;
         maxRequestSize = 1000000 * 15) // 15mb
 @WebServlet(name = "AdminController", urlPatterns = {"/admin"})
 public class AdminController extends HttpServlet {
-    
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -67,9 +70,9 @@ public class AdminController extends HttpServlet {
         } catch (DaoException ex) {
             request.getRequestDispatcher("error.jsp").forward(request, response);
         }
-        
+
     }
-    
+
     private void processRecruiterGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
         String action = request.getParameter("action");
         Optional<Job> existingJob;
@@ -109,14 +112,14 @@ public class AdminController extends HttpServlet {
                     request.getRequestDispatcher("not_found.html").forward(request, response);
             }
         }
-        
+
     }
-    
+
     private void sendResumeForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
         injectWorkDetailsOptions(request);
         request.getRequestDispatcher("resume_form.jsp").forward(request, response);
     }
-    
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -131,7 +134,7 @@ public class AdminController extends HttpServlet {
             request.getRequestDispatcher("error.jsp").forward(request, response);
         }
     }
-    
+
     private void processRecruiterPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, NumberFormatException, DaoException {
         String action = request.getParameter("action");
         Optional<Job> existingJob;
@@ -154,7 +157,7 @@ public class AdminController extends HttpServlet {
                 case "deletejob":
                     existingJob = jobFromRequestIdParam(request);
                     if (existingJob.isPresent()) {
-                        deleteJob(request, response, existingJob.get());
+                        deleteJob(response, existingJob.get());
                     } else {
                         sendNotFound(request, response);
                     }
@@ -166,9 +169,9 @@ public class AdminController extends HttpServlet {
                     request.getRequestDispatcher("not_found.html").forward(request, response);
             }
         }
-        
+
     }
-    
+
     private void processSeekerGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
         String action = request.getParameter("action");
         if (action == null) {
@@ -198,10 +201,11 @@ public class AdminController extends HttpServlet {
             }
         }
     }
-    
+
     private void processSeekerPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
         String action = request.getParameter("action");
         Optional<Resume> existingResume;
+        Optional<Job> existingJob;
         if (action == null) {
             request.getRequestDispatcher("not_found.html").forward(request, response);
         } else {
@@ -226,22 +230,31 @@ public class AdminController extends HttpServlet {
                         request.getRequestDispatcher("not_found.html").forward(request, response);
                     }
                     break;
+                case "apply":
+                    existingResume = resumeFromRequestIdParam(request);
+                    existingJob = jobFromRequestIdParam(request);
+                    if (existingJob.isPresent() && existingResume.isPresent()) {
+                        applyForJob(request, response, existingJob.get().getJobId(), existingResume.get().getResumeId());
+                    } else {
+                        sendNotFound(request, response);
+                    }
+                    break;
                 default:
                     sendNotFound(request, response);
             }
         }
     }
-    
+
     private void sendNotFound(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         request.getRequestDispatcher("not_found.html").forward(request, response);
     }
-    
+
     private void createResume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException, NumberFormatException {
         Resume resume = parseResume(request);
         ModelValidator md = new ModelValidator();
         Map<String, String> resumeConstraints = md.validate(resume);
         resumeConstraints.putAll(md.validate(resume.getWorkDetails()));
-        
+
         if (!resumeConstraints.isEmpty()) {
             deleteFile(resume.getWorkDetails().getImageUri());
             request.setAttribute("constraints", resumeConstraints);
@@ -255,7 +268,7 @@ public class AdminController extends HttpServlet {
         languageDao.addResumeLanguage(resume.getWorkDetails().getLanguageIds(), resume.getResumeId());
         response.sendRedirect(request.getContextPath() + "/resumes?resumeId=" + resume.getResumeId());
     }
-    
+
     private Resume parseResume(HttpServletRequest request) throws IOException, NumberFormatException, ServletException {
         String title = request.getParameter("title");
         String position = request.getParameter("position");
@@ -270,12 +283,12 @@ public class AdminController extends HttpServlet {
         resume.setBio(bio);
         resume.setStatus(status);
         resume.setViews(0);
-        
+
         WorkDetails workDetails = parseWorkDetails(request);
         resume.setWorkDetails(workDetails);
         return resume;
     }
-    
+
     private WorkDetails parseWorkDetails(HttpServletRequest request) throws ServletException, IOException, NumberFormatException {
         List<Integer> selectedLanguages = request.getParameterValues("language") != null
                 ? Stream.of(request.getParameterValues("language")).map(Integer::parseInt).collect(Collectors.toList())
@@ -293,11 +306,11 @@ public class AdminController extends HttpServlet {
         workDetails.setLevelId(levelId);
         return workDetails;
     }
-    
+
     private static Account getCurrentUser(HttpServletRequest request) {
         return (Account) request.getSession().getAttribute("account");
     }
-    
+
     private String savePart(Part part) throws IOException {
         String saveDirectory = getServletContext().getInitParameter("UPLOAD_DIR");
         String uploadPath = getServletContext().getRealPath("") + saveDirectory;
@@ -311,16 +324,16 @@ public class AdminController extends HttpServlet {
         String relativePath = saveDirectory + File.separator + fileName;
         return relativePath;
     }
-    
+
     private void deleteFile(String filename) {
         new File(getServletContext().getRealPath("") + filename).delete();
     }
-    
+
     private String getExtension(String filename) {
         String[] parts = filename.split("\\.");
         return "." + parts[parts.length - 1];
     }
-    
+
     private void sendResumeEditForm(HttpServletRequest request, HttpServletResponse response, Resume resume) throws DaoException, ServletException, IOException {
         LanguageDao languageDao = new LanguageDao();
         List<Language> resumeLanguages = languageDao.getResumeLanguages(resume.getResumeId());
@@ -328,7 +341,7 @@ public class AdminController extends HttpServlet {
         request.setAttribute("resume", resume);
         sendResumeForm(request, response);
     }
-    
+
     private void injectWorkDetailsOptions(HttpServletRequest request) throws DaoException {
         LanguageDao languageDao = new LanguageDao();
         LocationDao locationDao = new LocationDao();
@@ -339,7 +352,7 @@ public class AdminController extends HttpServlet {
         request.setAttribute("fields", fieldDao.getAllFields());
         request.setAttribute("academicLevels", academicLevelDao.getAllLevels());
     }
-    
+
     private void editResume(HttpServletRequest request, HttpServletResponse response, Resume existingResume) throws IOException, NumberFormatException, ServletException, DaoException {
         ResumeDao resumeDao = new ResumeDao();
         Resume resume = parseResume(request);
@@ -347,7 +360,7 @@ public class AdminController extends HttpServlet {
         ModelValidator md = new ModelValidator();
         Map<String, String> resumeConstraints = md.validate(resume);
         resumeConstraints.putAll(md.validate(resume.getWorkDetails()));
-        
+
         if (!resumeConstraints.isEmpty()) {
             deleteFile(getServletContext().getRealPath("") + resume.getWorkDetails().getImageUri());
             request.setAttribute("constraints", resumeConstraints);
@@ -355,7 +368,7 @@ public class AdminController extends HttpServlet {
             sendResumeForm(request, response);
             return;
         }
-        
+
         LanguageDao languageDao = new LanguageDao();
         languageDao.deleteResumeLanguages(existingResume.getResumeId());
         languageDao.addResumeLanguage(resume.getWorkDetails().getLanguageIds(), resume.getResumeId());
@@ -363,7 +376,7 @@ public class AdminController extends HttpServlet {
         deleteFile(getServletContext().getRealPath("") + existingResume.getWorkDetails().getImageUri());
         response.sendRedirect(request.getContextPath() + "/resumes?resumeId=" + resume.getResumeId());
     }
-    
+
     private void deleteResume(HttpServletRequest request, HttpServletResponse response, Resume resume) throws ServletException, ServletException, IOException, IOException, DaoException {
         LanguageDao languageDao = new LanguageDao();
         ResumeDao resumeDao = new ResumeDao();
@@ -372,21 +385,21 @@ public class AdminController extends HttpServlet {
         deleteFile(resume.getWorkDetails().getImageUri());
         response.sendRedirect("admin");
     }
-    
+
     private void sendResumeAdminPage(HttpServletRequest request, HttpServletResponse response) throws ServletException, ServletException, IOException, IOException, DaoException {
         ResumeDao resumeDao = new ResumeDao();
         List<Resume> accountResumes = resumeDao.getResumesOfAccount(getCurrentUser(request).getAccountId());
         request.setAttribute("resumes", accountResumes);
         request.getRequestDispatcher("admin_seeker.jsp").forward(request, response);
     }
-    
+
     private void sendJobAdminPage(HttpServletRequest request, HttpServletResponse response) throws DaoException, ServletException, IOException {
         JobDao jobDao = new JobDao();
         List<Job> accountJobs = jobDao.getAllJobsOfAccount(getCurrentUser(request).getAccountId());
         request.setAttribute("jobs", accountJobs);
         request.getRequestDispatcher("admin_recruiter.jsp").forward(request, response);
     }
-    
+
     private void sendJobForm(HttpServletRequest request, HttpServletResponse response) throws DaoException, ServletException, IOException {
         JobTypeDao jobTypeDao = new JobTypeDao();
         List<JobType> jobTypes = jobTypeDao.getAllJobTypes();
@@ -394,19 +407,19 @@ public class AdminController extends HttpServlet {
         injectWorkDetailsOptions(request);
         request.getRequestDispatcher("job_form.jsp").forward(request, response);
     }
-    
+
     private boolean hasCompanyInfo(int accountId) throws DaoException {
         CompanyDao companyDao = new CompanyDao();
         return companyDao.getCompany(accountId).isPresent();
     }
-    
+
     private void saveOrUpdateCompany(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException, DaoException {
         Company company = parseCompany(request);
-        
+
         ModelValidator modelValidator = new ModelValidator();
         Map<String, String> constraints = modelValidator.validate(company);
         request.setAttribute("company", company);
-        
+
         if (!constraints.isEmpty()) {
             deleteFile(company.getImageUri());
             request.setAttribute("constraints", constraints);
@@ -415,9 +428,9 @@ public class AdminController extends HttpServlet {
             NotificationUtils.setNotification(request, NotificationType.success, "Thông tin doanh nghiệp cập nhật thành công");
         }
         request.getRequestDispatcher("company_form.jsp").forward(request, response);
-        
+
     }
-    
+
     private Company parseCompany(HttpServletRequest request) throws ServletException, IOException, NumberFormatException {
         int companyId = Integer.parseInt(request.getParameter("companyId"));
         String name = request.getParameter("name");
@@ -433,7 +446,7 @@ public class AdminController extends HttpServlet {
         company.setImageUri(imageUri);
         return company;
     }
-    
+
     private void addOrUpdateCompany(Company company) throws DaoException {
         CompanyDao companyDao = new CompanyDao();
         Optional<Company> existingCompanyProfile = companyDao.getCompany(company.getCompanyId());
@@ -443,16 +456,16 @@ public class AdminController extends HttpServlet {
         } else {
             companyDao.addCompany(company);
         }
-        
+
     }
-    
+
     private void createJob(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException, NumberFormatException {
         Job job = parseJob(request);
         System.out.println(job.getWorkDetails().getLanguageIds().toString());
         ModelValidator md = new ModelValidator();
         Map<String, String> jobConstraints = md.validate(job);
         jobConstraints.putAll(md.validate(job.getWorkDetails()));
-        
+
         if (!jobConstraints.isEmpty()) {
             deleteFile(job.getWorkDetails().getImageUri());
             request.setAttribute("constraints", jobConstraints);
@@ -466,14 +479,14 @@ public class AdminController extends HttpServlet {
         languageDao.addJobLanguage(job.getWorkDetails().getLanguageIds(), job.getJobId());
         response.sendRedirect(request.getContextPath() + "/jobs?jobId=" + job.getJobId());
     }
-    
+
     private Job parseJob(HttpServletRequest request) throws ServletException, IOException {
         String title = request.getParameter("title");
         String description = request.getParameter("description");
         BigDecimal startingSalary = BigDecimal.valueOf(Double.parseDouble(request.getParameter("startingSalary")));
         Integer jobTypeId = Integer.parseInt(request.getParameter("jobType"));
         boolean status = Boolean.parseBoolean(request.getParameter("status"));
-        
+
         Job job = new Job();
         job.setTitle(title);
         job.setDescription(description);
@@ -482,12 +495,12 @@ public class AdminController extends HttpServlet {
         job.setStatus(status);
         job.setLastModified(LocalDate.now());
         job.setAccountId(getCurrentUser(request).getAccountId());
-        
+
         WorkDetails workDetails = parseWorkDetails(request);
         job.setWorkDetails(workDetails);
         return job;
     }
-    
+
     private void sendJobEditForm(HttpServletRequest request, HttpServletResponse response, Job job) throws DaoException, ServletException, IOException {
         LanguageDao languageDao = new LanguageDao();
         List<Language> jobLanguages = languageDao.getJobLanguages(job.getJobId());
@@ -495,7 +508,7 @@ public class AdminController extends HttpServlet {
         request.setAttribute("job", job);
         sendJobForm(request, response);
     }
-    
+
     private void editJob(HttpServletRequest request, HttpServletResponse response, Job existingJob) throws DaoException, IOException, ServletException {
         JobDao jobDao = new JobDao();
         Job job = parseJob(request);
@@ -503,7 +516,7 @@ public class AdminController extends HttpServlet {
         ModelValidator md = new ModelValidator();
         Map<String, String> jobConstraints = md.validate(job);
         jobConstraints.putAll(md.validate(job.getWorkDetails()));
-        
+
         if (!jobConstraints.isEmpty()) {
             deleteFile(getServletContext().getRealPath("") + job.getWorkDetails().getImageUri());
             request.setAttribute("constraints", jobConstraints);
@@ -511,7 +524,7 @@ public class AdminController extends HttpServlet {
             sendJobForm(request, response);
             return;
         }
-        
+
         LanguageDao languageDao = new LanguageDao();
         languageDao.deleteJobLanguages(existingJob.getJobId());
         languageDao.addJobLanguage(job.getWorkDetails().getLanguageIds(), job.getJobId());
@@ -519,7 +532,7 @@ public class AdminController extends HttpServlet {
         deleteFile(getServletContext().getRealPath("") + existingJob.getWorkDetails().getImageUri());
         response.sendRedirect(request.getContextPath() + "/jobs?jobId=" + job.getJobId());
     }
-    
+
     private Optional<Resume> resumeFromRequestIdParam(HttpServletRequest request) throws DaoException {
         ResumeDao resumeDao = new ResumeDao();
         Optional<Resume> opResume = null;
@@ -529,7 +542,7 @@ public class AdminController extends HttpServlet {
         }
         return Optional.of(opResume.get());
     }
-    
+
     private Optional<Job> jobFromRequestIdParam(HttpServletRequest request) throws DaoException {
         JobDao jobDao = new JobDao();
         Optional<Job> opJob = null;
@@ -539,13 +552,32 @@ public class AdminController extends HttpServlet {
         }
         return Optional.of(opJob.get());
     }
-    
-    private void deleteJob(HttpServletRequest request, HttpServletResponse response, Job job) throws DaoException, IOException {
+
+    private void deleteJob(HttpServletResponse response, Job job) throws DaoException, IOException {
         LanguageDao languageDao = new LanguageDao();
         JobDao jobDao = new JobDao();
         languageDao.deleteJobLanguages(job.getJobId());
         jobDao.deleteJob(job.getJobId());
         deleteFile(job.getWorkDetails().getImageUri());
         response.sendRedirect("admin");
+    }
+
+    private void applyForJob(HttpServletRequest request, HttpServletResponse response, int jobId, int resumeId) throws DaoException, ServletException, IOException {
+        Application application = new Application();
+        application.setJobId(jobId);
+        application.setResumeId(resumeId);
+        application.setCreatedTime(LocalDate.now());
+        application.setMessage(request.getParameter("message"));
+        application.setStatusId(ApplicationStatus.PENDING);
+
+        System.out.println("applyforjob called");
+
+        ApplicationDao applicationDao = new ApplicationDao();
+        if (applicationDao.checkApplicationStatus(jobId, resumeId, ApplicationStatus.PENDING)) {
+            response.sendRedirect("jobs?jobId=" + jobId + "&notif=1");
+        } else {
+            applicationDao.addApplication(application);
+            response.sendRedirect("jobs?jobId=" + jobId + "&notif=2");
+        }
     }
 }
