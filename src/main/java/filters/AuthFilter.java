@@ -5,10 +5,12 @@
  */
 package filters;
 
+import dao.ApplicationDao;
 import dao.JobDao;
 import dao.ResumeDao;
 import exceptions.DaoException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +24,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import models.account.Account;
+import models.account.AccountType;
+import models.application.Application;
 import models.job.Job;
 import models.resume.Resume;
 
@@ -30,8 +34,6 @@ import models.resume.Resume;
  * @author Admin
  */
 public class AuthFilter implements Filter {
-
-    public static final String SESSION_ACCOUNT_KEY = "account";
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -50,25 +52,13 @@ public class AuthFilter implements Filter {
         } else {
             try {
                 Account account = (Account) session.getAttribute("account");
-                String resumeId = request.getParameter("resumeId");
-                if (resumeId != null) {
-                    ResumeDao resumeDao = new ResumeDao();
-                    Optional<Resume> opResume = resumeDao.getResume(Integer.parseInt(resumeId));
-                    if (opResume.isPresent() && opResume.get().getAccountId() != account.getAccountId()) {
-                        request.getRequestDispatcher("unauthorized.html").forward(request, response);
-                        return;
-                    }
+                if (unauthorizedResumeActions(request, account, response)
+                        || unauthorizedJobActions(request, account, response)
+                        || unauthorizedApplicationActions(request, account)) {
+                    request.getRequestDispatcher("unauthorized.html").forward(request, response);
+                    return;
                 }
-                String jobId = request.getParameter("jobId");
 
-                if (jobId != null && !httpRequest.getParameter("action").equals("apply")) {
-                    JobDao jobDao = new JobDao();
-                    Optional<Job> opJob = jobDao.getJob(Integer.parseInt(jobId));
-                    if (opJob.isPresent() && opJob.get().getAccountId() != account.getAccountId()) {
-                        request.getRequestDispatcher("unauthorized.html").forward(request, response);
-                        return;
-                    }
-                }
                 chain.doFilter(request, response);
 
             } catch (DaoException ex) {
@@ -77,6 +67,45 @@ public class AuthFilter implements Filter {
             }
 
         }
+    }
+
+    private boolean unauthorizedApplicationActions(ServletRequest request, Account account) throws NumberFormatException, DaoException {
+        String applicationId = request.getParameter("applicationId");
+        if (applicationId != null) {
+            Integer applId = Integer.parseInt(applicationId);
+            ApplicationDao applicationDao = new ApplicationDao();
+            List<Application> userApplications = account.getAccountTypeId() == AccountType.JOB_SEEKER
+                    ? applicationDao.getSeekerApplications(account.getAccountId())
+                    : applicationDao.getRecruiterApplications(account.getAccountId());
+            if (!userApplications.stream().anyMatch(ap -> ap.getApplicationId() == applId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean unauthorizedJobActions(ServletRequest request, Account account, ServletResponse response) throws DaoException, NumberFormatException, ServletException, IOException {
+        String jobId = request.getParameter("jobId");
+        if (jobId != null && !request.getParameter("action").equals("apply")) {
+            JobDao jobDao = new JobDao();
+            Optional<Job> opJob = jobDao.getJob(Integer.parseInt(jobId));
+            if (opJob.isPresent() && opJob.get().getAccountId() != account.getAccountId()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean unauthorizedResumeActions(ServletRequest request, Account account, ServletResponse response) throws DaoException, ServletException, IOException, NumberFormatException {
+        String resumeId = request.getParameter("resumeId");
+        if (resumeId != null) {
+            ResumeDao resumeDao = new ResumeDao();
+            Optional<Resume> opResume = resumeDao.getResume(Integer.parseInt(resumeId));
+            if (opResume.isPresent() && opResume.get().getAccountId() != account.getAccountId()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

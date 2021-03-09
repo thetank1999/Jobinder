@@ -4,27 +4,10 @@
     Author     : Admin
 --%>
 
-<%@page import="models.account.AccountType"%>
 <%@page import="utils.CurrencyUtils"%>
-<%@page import="models.job.JobType"%>
-<%@page import="models.common.Field"%>
-<%@page import="models.common.AcademicLevel"%>
-<%@page import="models.common.Location"%>
-<%@page import="java.util.stream.Collectors"%>
-<%@page import="java.util.List"%>
-<%@page import="models.common.Language"%>
-<%@page import="models.job.Job"%>
-<%@page import="models.account.Account"%>
 <%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
-<%
-    Account account = (Account) request.getAttribute("account");
-    Job job = (Job) request.getAttribute("job");
-    JobType jobType = (JobType) request.getAttribute("jobType");
-    List<Language> languages = (List<Language>) request.getAttribute("jobLanguages");
-    Location location = (Location) request.getAttribute("jobLocation");
-    AcademicLevel level = (AcademicLevel) request.getAttribute("jobAcademicLevel");
-    Field field = (Field) request.getAttribute("jobField");
-%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -35,20 +18,21 @@
     </head>
     <body class="bg-light">
         <%@include  file="header.jsp"%>
-        <div class="container bg-white rounded shadow m-5" style="overflow: hidden;">
+        <div class="container bg-white rounded shadow m-5 mx-auto" style="overflow: hidden;">
             <div class="row bg-dark text-white px-5 py-3" style="overflow: hidden; position: relative;">
-                <div class="col-3">
-                    <img class="img-fluid img-thumbnail" src="<%=job.getWorkDetails().getImageUri()%>" style="width: 15vw; height: 15vw; object-fit: cover;">
+                <div class="col-4 col-lg-3">
+                    <img class="img-fluid img-thumbnail" src="${job.workDetails.imageUri}" style="width: max(15vw, 25vh); height: max(15vw, 25vh); object-fit: cover;">
                 </div>
-                <div class="col-9" style="z-index: 1;">
-                    <h2><%=account.getName()%></h2>
-                    <a class="d-block mb-1" href="mailto:<%=account.getEmail()%>"><i class="far fa-envelope"></i> <%=account.getEmail()%></a>
-                    <a class="d-block mb-1" href="tel:<%=account.getPhoneNumber()%>"><i class="fas fa-phone-alt"></i> <%=account.getPhoneNumber()%></a>
-                    <p>Cập nhật lần cuối: <%=job.getLastModified()%></p>
+                <div class="col-8 col-lg-9" style="z-index: 1;">
+                    <div><h2><c:out value="${account.name}"/></h2></div>
+                    <div><a class="d-block my-1" href="mailto:<c:out value="${account.email}"/>"><i class="far fa-envelope"></i> <c:out value="${account.email}"/></a></div>
+                    <div><a class="d-block my-1" href="tel:<c:out value="${account.phoneNumber}"/>><i class="fas fa-phone-alt"></i> <c:out value="${account.phoneNumber}"/></a></div>
+                    <div><a class="d-block my-1" href="jobs?accountId=${account.accountId}"><i class="fas fa-list"></i> Các công việc khác của tôi</a></div>
+                    <div><p class="my-1">Cập nhật lần cuối: <c:out value="${job.lastModified}"/></p></div>
                 </div>
                 <img src="svgs/job_icon.svg" style="width: 30vw; height: auto; position: absolute; transform: rotate(-45deg); right: 5vw; top: -5vw; z-index: 0;">
             </div>
-            <h1 class="text-center display-4 mt-5"><%=job.getTitle()%></h1>
+            <h1 class="text-center display-4 mt-5"><c:out value="${job.title}"/></h1>
             <div class="row p-5" >
                 <div class="col-md-3">
                     <h3>Thông tin công việc</h3>
@@ -58,31 +42,31 @@
                         <tbody>
                             <tr>
                                 <th>Loại công việc</th>
-                                <td><%=jobType.getName()%></td>
+                                <td>${jobType.name}</td>
                             </tr>
                             <tr>
                                 <th>Lương khởi điểm</th>
-                                <td><%=CurrencyUtils.formatVND(job.getStartingSalary())%></td>
+                                <td>${CurrencyUtils.formatVND(job.startingSalary)}</td>
                             </tr>
                             <tr>
                                 <th>Mô tả công việc</th>
-                                <td><%=job.getDescription()%></td>
+                                <td>${job.description}</td>
                             </tr>
                             <tr>
                                 <th>Các ngôn ngữ thành thạo</th>
-                                <td><%=languages.stream().map(Language::getName).collect(Collectors.joining(", "))%></td>
+                                <td>${jobLanguages}</td>
                             </tr>
                             <tr>
                                 <th>Nơi làm việc</th>
-                                <td><%=location.getName()%></td>
+                                <td>${jobLocation.name}</td>
                             </tr>
                             <tr>
                                 <th>Trình độ học vấn</th>
-                                <td><%=level.getTitle()%></td>
+                                <td>${jobAcademicLevel.title}</td>
                             </tr>
                             <tr>
                                 <th>Lĩnh vực nghề nghiệp</th>
-                                <td><%=field.getName()%></td>
+                                <td>${jobField.name}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -93,21 +77,22 @@
                     <h3>Thông tin doanh nghiệp</h3>
                 </div>
                 <div class="col-md-9 row" style="overflow: hidden; position: relative;">
-                    <div class="col-3">
-                        <img class="img-fluid img-thumbnail" src="<%=job.getCompany().getImageUri()%>" style="width: 10vw; height: 10vw; object-fit: cover;">
+                    <div class="col-4 col-lg-3">
+                        <img class="img-fluid img-thumbnail" src="${job.company.imageUri}" style="width: max(10vw, 20vh); height: max(10vw, 20vh); object-fit: cover;">
                     </div>
-                    <div class="col-9" style="z-index: 1;">
-                        <h2><%=job.getCompany().getName()%></h2>
-                        <p><%=job.getCompany().getDescription()%></p>
-                        <p><i class="fas fa-map-marker-alt ml-2"></i> <%=job.getCompany().getAddress()%></p>
+                    <div class="col-8 col-lg-9" style="z-index: 1;">
+                        <h2><c:out value="${job.company.name}"/></h2>
+                        <p><c:out value="${job.company.description}"/></p>
+                        <p><i class="fas fa-map-marker-alt ml-2"></i> <c:out value="${job.company.address}"/></p>
                     </div>
                 </div>
             </div>
-            <%if (request.getAttribute("resumes") != null) {%>
-            <%@include file="apply_job.jsp" %>
-            <%} else {%>
-            <p class="text-secondary text-center mt-3">Bạn phải có tài khoản kiếm việc mới có thể ứng tuyển cho công việc này</p>
-            <%}%>
+            <c:if test="${not empty resumes}">
+                <%@include file="apply_job.jsp" %>
+            </c:if>
+            <c:if test="${empty resumes}">
+                <p class="text-secondary text-center mt-3">Bạn phải có tài khoản kiếm việc mới có thể ứng tuyển cho công việc này</p>
+            </c:if>
         </div>
         <%@include file="back_to_top.html" %>
         <%@include file="footer.html" %>

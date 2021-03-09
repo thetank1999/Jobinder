@@ -53,11 +53,11 @@ public class Application implements Serializable {
         this.statusId = statusId;
     }
 
-    public LocalDate getCreatedTime() {
+    public LocalDate getCreatedDate() {
         return createdDate;
     }
 
-    public void setCreatedTime(LocalDate createdDate) {
+    public void setCreatedDate(LocalDate createdDate) {
         this.createdDate = createdDate;
     }
 

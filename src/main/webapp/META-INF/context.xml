@@ -1,2 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context path="/SE1502_ASSIGNMENT_GROUP_7"/>
+<Context path="/SE1502_ASSIGNMENT_GROUP_7">
+    <Resource
+        name="AssignmentDB"
+        auth="Container"
+        type="javax.sql.DataSource"
+        url="jdbc:sqlserver://127.0.0.1:1433;databaseName=SE1502_ASSIGNMENT_GROUP_7;"
+        driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        username="sa"
+        password="sa"
+    >
+    </Resource>
+</Context>

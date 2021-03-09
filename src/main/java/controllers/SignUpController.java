@@ -12,6 +12,7 @@ import dao.TokenDao;
 import exceptions.DaoException;
 import exceptions.ServiceException;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import models.account.Account;
 import models.common.Token;
 import services.EmailService;
+import services.EncryptionService;
 import utils.NotificationType;
 import utils.NotificationUtils;
 import validation.ModelValidator;
@@ -51,22 +53,21 @@ public class SignUpController extends HttpServlet {
             throws ServletException, IOException {
         AccountDao accountDao = new AccountDaoImpl();
         TokenDao tokenDao = new TokenDao();
-
-        Account account = accountFromRequestParams(request);
-
-        ModelValidator mv = new ModelValidator();
-        Map<String, String> constraints = mv.validate(account);
-
-        if (!constraints.isEmpty()) {
-            request.setAttribute("account", account);
-            request.setAttribute("constraints", constraints);
-            doGet(request, response);
-            return;
-        }
-
         try {
+            Account account = accountFromRequestParams(request);
+
+            ModelValidator mv = new ModelValidator();
+            Map<String, String> constraints = mv.validate(account);
+
+            if (!constraints.isEmpty()) {
+                request.setAttribute("inputAccount", account);
+                request.setAttribute("constraints", constraints);
+                doGet(request, response);
+                return;
+            }
+
             if (emailTaken(accountDao, account)) {
-                request.setAttribute("account", account);
+                request.setAttribute("inputAccount", account);
                 NotificationUtils.setNotification(request, NotificationType.error, "An account is already registered with this email");
                 doGet(request, response);
                 return;
@@ -80,8 +81,8 @@ public class SignUpController extends HttpServlet {
             emailService.sendHtmlMail(account.getEmail(), "Please confirm your email address", "Thank you for creating an account at Jobinder, your account is almost ready, confirm your email by clicking the link below\n" + "http://localhost:8080/SE1502_ASSIGNMENT_GROUP_7/activate?token=" + token.getValue());
 
             request.getRequestDispatcher("register_complete.html").forward(request, response);
-            response.sendRedirect("./");
-        } catch (DaoException | ServiceException ex) {
+            response.sendRedirect("admin");
+        } catch (DaoException | ServiceException | NoSuchAlgorithmException ex) {
             request.getRequestDispatcher("error.jsp").forward(request, response);
         }
     }
@@ -96,7 +97,7 @@ public class SignUpController extends HttpServlet {
         return token;
     }
 
-    private Account accountFromRequestParams(HttpServletRequest request) throws NumberFormatException {
+    private Account accountFromRequestParams(HttpServletRequest request) throws NumberFormatException, NoSuchAlgorithmException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
         String phoneNumber = request.getParameter("phoneNumber");
@@ -104,7 +105,7 @@ public class SignUpController extends HttpServlet {
         int accountTypeId = Integer.parseInt(request.getParameter("accountType"));
         Account account = new Account();
         account.setEmail(email);
-        account.setPassword(password);
+        account.setPassword(EncryptionService.encrypt(password));
         account.setActivated(false);
         account.setPhoneNumber(phoneNumber);
         account.setAccountTypeId(accountTypeId);

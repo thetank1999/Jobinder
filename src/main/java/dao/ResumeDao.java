@@ -28,19 +28,19 @@ import utils.JDBCUtils;
  * @author Admin
  */
 public class ResumeDao {
-
+    
     private static final Logger LOGGER = Logger.getLogger(ResumeDao.class.getName());
-    private static final String SELECT_ALL_RESUMES = "SELECT * FROM resume WHERE status = 1;";
     private static final String SELECT_RESUME = "SELECT * FROM resume WHERE resumeId = ?;";
-    private static final String SELECT_RESUMES_OF_ACCOUNT = "SELECT * FROM resume WHERE accountId = ?;";
+    private static final String SELECT_RESUMES_OF_ACCOUNT = "SELECT * FROM resume WHERE accountId = ? AND deleted = 0;";
     private static final String INSERT_RESUME = "INSERT INTO resume "
             + "(title, accountId, position, yearOfExperience, bio, lastModified, imageUri, locationId, levelId, fieldId, status, views)"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
     private static final String UPDATE_RESUME = "UPDATE resume SET "
             + "title = ?, position = ?, yearOfExperience = ?, bio = ?, lastModified = ?, imageUri = ?, locationId = ?, levelId = ?, fieldId = ?, status = ? WHERE resumeId = ?;";
-    private static final String DELETE_RESUME = "DELETE FROM resume WHERE resumeId = ?";
+    private static final String DELETE_RESUME = "UPDATE resume SET deleted = 1 WHERE resumeId = ?";
     private static final String INCREASE_RESUME_VIEWS = "UPDATE resume SET views = views + ? WHERE resumeId = ?;";
-
+    private static final String SWITCH_RESUME_STATUS = "UPDATE resume SET status = 1 ^ status WHERE resumeId =?;";
+    
     public void addResume(Resume resume) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(INSERT_RESUME, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, resume.getTitle());
@@ -61,13 +61,13 @@ public class ResumeDao {
                     resume.setResumeId(rs.getInt(1));
                 }
             }
-
+            
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage());
             throw new DaoException();
         }
     }
-
+    
     public void updateResume(Resume resume) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(UPDATE_RESUME)) {
             ps.setString(1, resume.getTitle());
@@ -81,40 +81,26 @@ public class ResumeDao {
             ps.setInt(9, resume.getWorkDetails().getFieldId());
             ps.setBoolean(10, resume.getStatus());
             ps.setInt(11, resume.getResumeId());
-
+            
             ps.executeUpdate();
-
+            
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage());
             throw new DaoException();
         }
     }
-
+    
     public void deleteResume(int resumeId) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(DELETE_RESUME)) {
             ps.setInt(1, resumeId);
             ps.executeUpdate();
-
+            
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage());
             throw new DaoException();
         }
     }
-
-    public List<Resume> getAllResumes() throws DaoException {
-        try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_ALL_RESUMES); ResultSet rs = ps.executeQuery()) {
-            List<Resume> resumes = new ArrayList<>();
-            while (rs.next()) {
-                resumes.add(resumeFromQueryResult(rs));
-            }
-            return resumes;
-        } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE, ex.getMessage());
-            throw new DaoException();
-        }
-
-    }
-
+    
     public List<Resume> getResumesOfAccount(int accountId) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_RESUMES_OF_ACCOUNT)) {
             ps.setInt(1, accountId);
@@ -129,31 +115,31 @@ public class ResumeDao {
             LOGGER.log(Level.SEVERE, ex.getMessage());
             throw new DaoException();
         }
-
+        
     }
-
+    
     public Optional<Resume> getResume(int resumeId) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_RESUME)) {
             ps.setInt(1, resumeId);
             try (ResultSet rs = ps.executeQuery();) {
                 return Optional.ofNullable(rs.next() ? resumeFromQueryResult(rs) : null);
             }
-
+            
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage());
             throw new DaoException();
         }
     }
-
+    
     private Resume resumeFromQueryResult(ResultSet rs) throws SQLException {
         Resume resume = new Resume();
         WorkDetails workDetails = new WorkDetails();
-
+        
         workDetails.setFieldId(rs.getInt("fieldId"));
         workDetails.setLocationId(rs.getInt("locationId"));
         workDetails.setImageUri(rs.getString("imageUri"));
         workDetails.setLevelId(rs.getInt("levelId"));
-
+        
         resume.setWorkDetails(workDetails);
         resume.setResumeId(rs.getInt("resumeId"));
         resume.setTitle(rs.getString("title"));
@@ -164,11 +150,12 @@ public class ResumeDao {
         resume.setYearOfExperience(rs.getInt("yearOfExperience"));
         resume.setStatus(rs.getBoolean("status"));
         resume.setViews(rs.getInt("views"));
-
+        resume.setDeleted(rs.getBoolean("deleted"));
+        
         return resume;
     }
-
-    public void increaseResumeCounts(Map<Integer, Integer> resumeIdToCount) throws DaoException {
+    
+    public void increaseResumeViewCounts(Map<Integer, Integer> resumeIdToCount) throws DaoException {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(INCREASE_RESUME_VIEWS)) {
             for (Map.Entry<Integer, Integer> entry : resumeIdToCount.entrySet()) {
                 ps.setInt(1, entry.getValue());
@@ -182,5 +169,16 @@ public class ResumeDao {
             throw new DaoException();
         }
     }
-
+    
+    public void switchResumeStatus(int resumeId) throws DaoException {
+        try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SWITCH_RESUME_STATUS)) {
+            ps.setInt(1, resumeId);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, ex.getMessage());
+            throw new DaoException();
+        }
+        
+    }
+    
 }

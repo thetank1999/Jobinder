@@ -4,14 +4,10 @@
     Author     : Admin
 --%>
 
-<%@page import="utils.NotificationUtils"%>
-<%
-    String notification = (String) request.getAttribute(NotificationUtils.NOTIFICATION_KEY);
-    String notificationType = (String) request.getAttribute(NotificationUtils.TYPE_KEY);
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<%if (notification != null) {%>
-<div class="alert alert-<%=notificationType%> center mt-1" role="alert">
-    <p style="margin-bottom: 0"><%=notification%></p>
-</div>
-<%}%>
+<c:if test="${not empty notification}">
+    <div class="alert alert-${notificationType} center mt-1" role="alert">
+        <p style="margin-bottom: 0">${notification}</p>
+    </div>
+</c:if>

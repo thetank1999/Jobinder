@@ -147,7 +147,7 @@ public class FilterableJobDao {
             parameterizers.add(new IntegerParameterizer(minLevelId));
         }
 
-        query = query + (!subQueryStrings.isEmpty() ? "WHERE " : "") + String.join(" AND ", subQueryStrings) + ";";
+        query = query + "WHERE " + String.join(" AND ", subQueryStrings) + (!subQueryStrings.isEmpty() ? " AND " : "") + "status = 1 AND deleted = 0;";
 
         System.out.println(query);
 
@@ -188,6 +188,7 @@ public class FilterableJobDao {
         job.setStatus(rs.getBoolean("status"));
         job.setStartingSalary(rs.getBigDecimal("startingSalary"));
         job.setJobTypeId(rs.getInt("jobTypeId"));
+        job.setDeleted(rs.getBoolean("deleted"));
 
         WorkDetails workDetails = new WorkDetails();
         workDetails.setImageUri(rs.getString("imageUri"));

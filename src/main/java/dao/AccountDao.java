@@ -24,4 +24,6 @@ public interface AccountDao {
     Optional<Account> getAccountById(int accountId) throws DaoException;
 
     public Optional<Account> getAccountByEmail(String email) throws DaoException;
+
+    public void updateAccount(Account account) throws DaoException;
 }

@@ -23,7 +23,7 @@ public class Company implements Serializable {
 
     private String address;
 
-    @RegexMatch(name = "description", message = "miêu tả quá ngắn, phải từ 25 kí tự trở lên", regex = ".{25,}")
+    @RegexMatch(name = "description", message = "miêu tả quá ngắn hoặc dài, phải từ 25 - 255 kí tự ", regex = "^.{25,255}$")
     private String description;
 
     public String getName() {

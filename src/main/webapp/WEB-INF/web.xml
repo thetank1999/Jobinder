@@ -17,8 +17,8 @@
         <filter-class>filters.IdFilter</filter-class>
     </filter>
     <filter>
-        <filter-name>ResumeViewCounter</filter-name>1
-        <filter-class>filters.ResumeViewCounter</filter-class>
+        <filter-name>ViewCounter</filter-name>1
+        <filter-class>filters.ViewCounter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>EncodingFilter</filter-name>
@@ -33,12 +33,31 @@
         <url-pattern>/admin</url-pattern>
     </filter-mapping>
     <filter-mapping>
-        <filter-name>ResumeViewCounter</filter-name>
+        <filter-name>ViewCounter</filter-name>
         <url-pattern>/resumes</url-pattern>
+        <url-pattern>/jobs</url-pattern>
     </filter-mapping>
+    <init-param>
+        <param-name>compilerSourceVM</param-name>
+        <param-value>1.8</param-value>
+    </init-param>
+    <init-param>
+        <param-name>compilerTargetVM</param-name>
+        <param-value>1.8</param-value>
+    </init-param>
     <session-config>
         <session-timeout>
             30
         </session-timeout>
     </session-config>
+    <jsp-config>
+        <taglib>
+            <taglib-uri>/WEB-INF/mytags</taglib-uri>
+            <taglib-location>/WEB-INF/mytags.tld</taglib-location>
+        </taglib>
+        <taglib>
+            <taglib-uri>/WEB-INF/myfuncs</taglib-uri>
+            <taglib-location>/WEB-INF/myfuncs.tld</taglib-location>
+        </taglib>
+    </jsp-config>
 </web-app>

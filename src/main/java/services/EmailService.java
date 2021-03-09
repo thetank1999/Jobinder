@@ -63,9 +63,9 @@ public class EmailService {
 
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
-            message.setSubject(subject);
+            message.setSubject(subject, "UTF-8");
 
-            message.setText(text);
+            message.setText(text, "UTF-8");
 
             Transport.send(message);
         } catch (MessagingException ex) {
@@ -84,9 +84,9 @@ public class EmailService {
 
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
-            message.setSubject(subject);
+            message.setSubject(subject, "UTF-8");
 
-            message.setContent(html, "text/html");
+            message.setContent(html, "text/html; charset=UTF-8");
 
             Transport.send(message);
         } catch (MessagingException ex) {

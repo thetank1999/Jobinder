@@ -91,15 +91,18 @@ public class ResumeListController extends HttpServlet {
 
     private void sendResumeDetails(HttpServletRequest request, HttpServletResponse response, int resumeId) throws DaoException, ServletException, IOException {
         ResumeDao resumeDao = new ResumeDao();
+        Optional<Resume> opResume = resumeDao.getResume(resumeId);
+        Account viewerAccount = (Account) request.getSession().getAttribute("account");
+        if (isIllegalAccess(opResume, viewerAccount)) {
+            request.getRequestDispatcher("not_found.html").forward(request, response);
+            return;
+        }
         AccountDao accountDao = new AccountDaoImpl();
         LanguageDao languageDao = new LanguageDao();
         LocationDao locationDao = new LocationDao();
         AcademicLevelDao academicLevelDao = new AcademicLevelDao();
         FieldDao fieldDao = new FieldDao();
-        Optional<Resume> opResume = resumeDao.getResume(resumeId);
-        if (!opResume.isPresent()) {
-            request.getRequestDispatcher("not_found.html").forward(request, response);
-        }
+
         Resume resume = opResume.get();
         Account resumeOwner = accountDao.getAccountById(resume.getAccountId()).get();
         List<Language> resumeLanguages = languageDao.getResumeLanguages(resumeId);
@@ -109,12 +112,21 @@ public class ResumeListController extends HttpServlet {
 
         request.setAttribute("account", resumeOwner);
         request.setAttribute("resume", resume);
-        request.setAttribute("resumeLanguages", resumeLanguages);
+        request.setAttribute("resumeLanguages", resumeLanguages.stream().map(Language::getName).collect(Collectors.joining(", ")));
         request.setAttribute("resumeLocation", resumeLocation);
         request.setAttribute("resumeAcademicLevel", resumeLevel);
         request.setAttribute("resumeField", resumeField);
 
         request.getRequestDispatcher("resume_detail.jsp").forward(request, response);
+    }
+
+    private static boolean isIllegalAccess(Optional<Resume> opResume, Account viewerAccount) {
+        // Resume not accessible if it is not found or is deleted or status if false and viewer is not resume owner
+        return !opResume.isPresent()
+                || opResume.get().isDeleted()
+                || (!opResume.get().getStatus()
+                && (viewerAccount == null
+                || opResume.get().getAccountId() != viewerAccount.getAccountId()));
     }
 
     private FilterableResumeDao buildResumeFilter(HttpServletRequest request) throws NumberFormatException {

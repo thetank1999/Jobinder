@@ -4,16 +4,9 @@
     Author     : Admin
 --%>
 
-<%@page import="java.util.Map"%>
-<%@page import="models.job.Company"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%
-    Account account = (Account) request.getSession().getAttribute("account");
-    Company company = (Company) request.getAttribute("company");
-    Map<String, String> constraints = (Map<String, String>) request.getAttribute("constraints");
-    boolean invalidImage = constraints != null && constraints.containsKey("image");
-    boolean invalidDescription = constraints != null && constraints.containsKey("description");
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -30,33 +23,32 @@
                 <div class="card-body">
                     <h3 class="card-title">Thông tin doanh nghiệp</h3>
                     <form action="admin?action=company" method="POST" enctype="multipart/form-data">
-                        <input type="text" id="companyId" name="companyId" value="<%=company != null ? company.getCompanyId() : account.getAccountId()%>" hidden />
+                        <input type="text" id="companyId" name="companyId" value="${company.companyId}" hidden />
                         <fieldset class="form-group">
                             <label for="name">Tên</label>
-                            <input type="text" class="form-control" id="name" name="name" value="<%=company != null ? company.getName() : ""%>" required /> 
+                            <input type="text" class="form-control" id="name" name="name" value="<c:out value="${company.name}"/>" required /> 
                         </fieldset>
                         <fieldset class="form-group mt-3">
                             <label for="address">Địa chỉ</label>
-                            <input type="text" class="form-control" id="address" name="address" value="<%=company != null ? company.getAddress() : ""%>" required />
+                            <input type="text" class="form-control" id="address" name="address" value="<c:out value="${company.address}"/>" required />
                         </fieldset>
                         <fieldset class="form-group mb-3">
                             <label for="description">Miêu tả</label>
-                            <textarea class="form-control <%=invalidDescription ? "is-invalid" : ""%>" id="description" name="description" cols="5" required><%=company != null ? company.getDescription() : ""%></textarea>
-                            <%if (invalidDescription) {%>
-                            <div class="invalid-feedback">
-                                <%=constraints.get("description")%>
-                            </div>
-                            <%}%>
+                            <textarea class="form-control <c:if test="${not empty constraints.description}">is-invalid</c:if>" id="description" name="description" cols="5" required><c:out value="${company.description}"/></textarea>
+                            <c:if test="${not empty constraints.description}">
+                                <div class="invalid-feedback">
+                                    <c:out value="${constraints.description}"/>
+                                </div>
+                            </c:if>
                         </fieldset>
                         <label class="form-label mt-3" for="image">Ảnh đại diện</label>
-                        <input accept="image/*" onchange="showPreview(this)" name="image" type="file" class="form-control <%=invalidImage ? "is-invalid" : ""%>" value="<%=company != null ? company.getImageUri() : ""%>" id="image" required />
-                        <%if (invalidImage) {%>
-                        <div class="invalid-feedback">
-                            <%=constraints.get("image")%>
-                        </div>
-                        <%}%>
+                        <input accept="image/*" onchange="showPreview(this)" name="image" type="file" class="form-control <c:if test="${not empty constraints.image}">is-invalid</c:if>" id="image" required />
+                        <c:if test="${not empty constraints.image}">
+                            <div class="invalid-feedback">
+                                <c:out value="${constraints.image}"/>
+                            </div>
+                        </c:if>
                         <div class="w-50 mt-2" id="img-preview"></div>
-                        <%@include file="notification.jsp" %>
                         <button type="submit" class="mt-2 btn btn-primary w-100" >Lưu thông tin</button>
                     </form>
                 </div>

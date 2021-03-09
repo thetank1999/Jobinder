@@ -4,14 +4,13 @@
     Author     : Admin
 --%>
 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib uri = "http://java.sun.com/jsp/jstl/functions" prefix = "fn" %>
+<%@taglib prefix="mf" uri="/WEB-INF/myfuncs" %>
+
 <%@page import="utils.CurrencyUtils"%>
-<%@page import="models.job.JobType"%>
-<%@page import="java.util.List"%>
-<%@page import="models.job.Job"%>
 <%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
-<%
-    List<Job> jobs = (List<Job>) request.getAttribute("jobs");
-%>
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -24,46 +23,46 @@
         <div style="overflow: hidden">
             <%@include  file="header.jsp"%>
             <div class="row mb-3">
-                <%@include file="job_filter.jsp" %>
+                <%@include  file="job_filter.jsp"%>
                 <div class="container d-flex col-lg-8 flex-column justify-content-start align-items-center">
-                    <%for (Job job : jobs) {%>
-                    <div class="card shadow min mt-2" style="padding: 0; width: 95%;">
-                        <div class="card-body" style="padding: 20px 20px 0 20px">
-                            <div class="d-flex">
-                                <img class="img-fluid img-thumbnail" style="width: 12vw; height: 12vw; object-fit: cover;" src="<%=job.getWorkDetails().getImageUri()%>">
-                                <div class="px-3">
-                                    <h4 class="card-text mx-2"><a style="text-decoration: none; color: black;" href="jobs?jobId=<%=job.getJobId()%>"><%=job.getTitle()%></a></h4>
-                                    <p class="card-text text-secondary mx-2"><%=job.getDescription().substring(0, Math.min(45, job.getDescription().length()))%>...</p>
-                                    <div class="d-flex">
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="far text-warning fa-clock"></i> <%=((List<JobType>) request.getAttribute("jobTypes")).stream().filter(jt -> jt.getJobTypeId() == job.getJobTypeId()).findFirst().get().getName()%>
-                                        </p>
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas text-warning fa-map-marker-alt ml-2"></i> <%=((List<Location>) request.getAttribute("locations")).stream().filter(lc -> lc.getLocationId() == job.getWorkDetails().getLocationId()).findFirst().get().getName()%>
-                                        </p>
-                                    </div>
-                                    <div class="d-flex">
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas text-warning fa-briefcase"></i> <%=((List<Field>) request.getAttribute("fields")).stream().filter(fi -> fi.getFieldId() == job.getWorkDetails().getFieldId()).findFirst().get().getName()%>
-                                        </p>
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas text-warning fa-money-check-alt"></i> <%=CurrencyUtils.formatVND(job.getStartingSalary())%>
-                                        </p>
+                    <c:forEach var="job" items="${jobs}">
+                        <div class="card shadow min mt-2" style="padding: 0; width: 95%;">
+                            <div class="card-body" style="padding: 20px 20px 0 20px">
+                                <div class="d-flex">
+                                    <img class="img-fluid img-thumbnail" style="width: 12vw; height: 12vw; object-fit: cover;" src="${job.workDetails.imageUri}">
+                                    <div class="px-3">
+                                        <h4 class="card-text mx-2"><a style="text-decoration: none; color: black;" href="jobs?jobId=${job.jobId}"><c:out value="${job.title}"/></a></h4>
+                                        <p class="card-text text-secondary mx-2"><c:out value="${mf:ellipsis(45, job.description)}"/></p>
+                                        <div class="d-flex">
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="far text-warning fa-clock"></i> ${jobTypes[job.jobTypeId - 1].name}
+                                            </p>
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas text-warning fa-map-marker-alt ml-2"></i> ${locations[job.workDetails.locationId - 1].name}
+                                            </p>
+                                        </div>
+                                        <div class="d-flex">
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas text-warning fa-briefcase"></i> ${fields[job.workDetails.fieldId - 1].name}
+                                            </p>
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas text-warning fa-money-check-alt"></i> ${CurrencyUtils.formatVND(job.startingSalary)}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <hr style="margin-bottom:0;"/>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <p class="text-secondary my-2"><i class="far text-warning fa-calendar-alt"></i> Cập nhật: <%=job.getLastModified()%></p>
-                                <p class="text-secondary my-2"><i class="fas fa-chart-line text-warning"></i> Lượt xem: <%=job.getViews()%></p>
-                                <a class="my-2 btn btn-link text-secondary" style="text-decoration: none;" href="<%=request.getContextPath() + "/jobs?jobId=" + job.getJobId()%>">Xem chi tiết</a>
+                                <hr style="margin-bottom:0;"/>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <p class="text-secondary my-2"><i class="far text-warning fa-calendar-alt"></i> Cập nhật: <c:out value="${job.lastModified}"/></p>
+                                    <p class="text-secondary my-2"><i class="fas fa-chart-line text-warning"></i> Lượt xem: <c:out value="${job.views}"/></p>
+                                    <a class="my-2 btn btn-link text-secondary" style="text-decoration: none;" href="jobs?jobId=${job.jobId}">Xem chi tiết</a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <%}%>
-                    <%if (jobs.size() == 0) {%>
-                    <p class="mt-3" style="color: graytext">Không có công việc nào được tìm thấy</p>
-                    <%}%>
+                    </c:forEach>
+                    <c:if test="${empty jobs}">
+                        <p class="mt-3" style="color: graytext">Không có công việc nào được tìm thấy</p>
+                    </c:if>
                 </div>
             </div>
         </div>

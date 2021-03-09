@@ -37,6 +37,8 @@ public class Resume implements Serializable {
 
     private LocalDate lastModified;
 
+    private boolean deleted;
+
     public int getResumeId() {
         return resumeId;
     }
@@ -115,6 +117,14 @@ public class Resume implements Serializable {
 
     public void setViews(int views) {
         this.views = views;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
 }

@@ -48,20 +48,13 @@ import utils.NotificationUtils;
 @WebServlet(name = "JobListController", urlPatterns = {"/jobs"})
 public class JobListController extends HttpServlet {
 
-    Optional<Job> opJob;
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
             String jobId = request.getParameter("jobId");
-            JobDao jobDao = new JobDao();
             if (jobId != null) {
-                if ((opJob = jobDao.getJob(Integer.parseInt(jobId))).isPresent()) {
-                    sendJobDetails(request, response, opJob.get());
-                } else {
-                    request.getRequestDispatcher("not_found.html").forward(request, response);
-                }
+                sendJobDetails(request, response, Integer.parseInt(jobId));
                 return;
             }
 
@@ -103,7 +96,16 @@ public class JobListController extends HttpServlet {
         }
     }
 
-    private void sendJobDetails(HttpServletRequest request, HttpServletResponse response, Job job) throws DaoException, ServletException, IOException {
+    private void sendJobDetails(HttpServletRequest request, HttpServletResponse response, int jobId) throws DaoException, ServletException, IOException {
+        JobDao jobDao = new JobDao();
+        Optional<Job> opJob = jobDao.getJob(jobId);
+        Account viewerAccount = ((Account) request.getSession().getAttribute("account"));
+
+        if (isIllegalAccess(opJob, viewerAccount)) {
+            request.getRequestDispatcher("not_found.html").forward(request, response);
+            return;
+        }
+        Job job = opJob.get();
         AccountDao accountDao = new AccountDaoImpl();
         LanguageDao languageDao = new LanguageDao();
         LocationDao locationDao = new LocationDao();
@@ -122,12 +124,10 @@ public class JobListController extends HttpServlet {
         request.setAttribute("account", jobOwner);
         request.setAttribute("job", job);
         request.setAttribute("jobType", jobType);
-        request.setAttribute("jobLanguages", jobLanguages);
+        request.setAttribute("jobLanguages", jobLanguages.stream().map(Language::getName).collect(Collectors.joining(", ")));
         request.setAttribute("jobLocation", jobLocation);
         request.setAttribute("jobAcademicLevel", jobLevel);
         request.setAttribute("jobField", jobField);
-
-        Account viewerAccount = ((Account) request.getSession().getAttribute("account"));
 
         if (viewerAccount != null && viewerAccount.getAccountTypeId() == AccountType.JOB_SEEKER) {
             ResumeDao resumeDao = new ResumeDao();
@@ -139,6 +139,11 @@ public class JobListController extends HttpServlet {
         }
 
         request.getRequestDispatcher("job_detail.jsp").forward(request, response);
+    }
+
+    private static boolean isIllegalAccess(Optional<Job> opJob, Account viewerAccount) {
+        // Job not accessible if it is not found or deleted or status is false and viewer is not job owner
+        return !opJob.isPresent() || opJob.get().isDeleted() || (!opJob.get().getStatus() && (viewerAccount == null || opJob.get().getAccountId() != viewerAccount.getAccountId()));
     }
 
     private FilterableJobDao buildJobFilter(HttpServletRequest request) throws NumberFormatException {

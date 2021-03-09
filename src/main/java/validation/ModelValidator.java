@@ -26,7 +26,7 @@ public class ModelValidator {
         MAPPINGS.put(RegexMatch.class, (Function<Field, Function<Object, Map.Entry<String, String>>>) (Field field) -> (Object object) -> {
             try {
                 field.setAccessible(true);
-                boolean isValid = ((String) field.get(object)).matches(field.getAnnotation(RegexMatch.class).regex());
+                boolean isValid = field.get(object) != null ? ((String) field.get(object)).matches(field.getAnnotation(RegexMatch.class).regex()) : true;
                 return isValid ? null : new AbstractMap.SimpleEntry<>(field.getAnnotation(RegexMatch.class).name().isEmpty() ? field.getName() : field.getAnnotation(RegexMatch.class).name(), field.getAnnotation(RegexMatch.class).message());
             } catch (IllegalArgumentException | IllegalAccessException ex) {
                 Logger.getLogger(ModelValidator.class.getName()).log(Level.SEVERE, null, ex);
@@ -38,7 +38,7 @@ public class ModelValidator {
             try {
                 field.setAccessible(true);
                 Integer fieldValue = ((Integer) field.get(object));
-                boolean isValid = fieldValue <= field.getAnnotation(IntMinMax.class).max() && fieldValue >= field.getAnnotation(IntMinMax.class).min();
+                boolean isValid = field.get(object) != null ? fieldValue <= field.getAnnotation(IntMinMax.class).max() && fieldValue >= field.getAnnotation(IntMinMax.class).min() : true;
                 return isValid ? null : new AbstractMap.SimpleEntry<>(field.getAnnotation(IntMinMax.class).name().isEmpty() ? field.getName() : field.getAnnotation(IntMinMax.class).name(), field.getAnnotation(IntMinMax.class).message());
             } catch (IllegalArgumentException | IllegalAccessException ex) {
                 Logger.getLogger(ModelValidator.class.getName()).log(Level.SEVERE, null, ex);

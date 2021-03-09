@@ -40,6 +40,8 @@ public class Job implements Serializable {
 
     private LocalDate lastModified;
 
+    private boolean deleted;
+
     public int getJobId() {
         return jobId;
     }
@@ -126,6 +128,14 @@ public class Job implements Serializable {
 
     public void setViews(int views) {
         this.views = views;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
 }

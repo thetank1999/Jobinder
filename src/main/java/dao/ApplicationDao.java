@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import models.application.Application;
@@ -25,13 +26,14 @@ import utils.JDBCUtils;
 public class ApplicationDao {
 
     private static final Logger LOGGER = Logger.getLogger(ApplicationDao.class.getName());
-    private static final String SELECT_APPLICATIONS_OF_SEEKER = "SELECT ap.* FROM account ac, resume re, application ap WHERE ac.accountId = re.accountId AND re.resumeId = ap.resumeId WHERE ac.accountId = ?;";
-    private static final String SELECT_APPLICATIONS_OF_RECRUITER = "SELECT ap.* FROM account ac, job jo, application ap WHERE ac.accountId = jo.accountId AND jo.jobId = ap.jobId WHERE ac.accountId = ?;";
+    private static final String SELECT_APPLICATIONS_OF_SEEKER = "SELECT ap.* FROM account ac, resume re, application ap WHERE ac.accountId = re.accountId AND re.resumeId = ap.resumeId AND ac.accountId = ?;";
+    private static final String SELECT_APPLICATIONS_OF_RECRUITER = "SELECT ap.* FROM account ac, job jo, application ap WHERE ac.accountId = jo.accountId AND jo.jobId = ap.jobId AND ac.accountId = ?;";
     private static final String INSERT_APPLICATION = "INSERT INTO application (jobId, resumeId, createdDate, message, statusId) VALUES (?, ?, ?, ?, ?);";
     private static final String UPDATE_APPLICATION_STATUS = "UPDATE application SET statusId = ? WHERE applicationId = ?;";
     private static final String CHECK_APPLICATION_STATUS = "SELECT * FROM application WHERE jobId = ? and ResumeId = ? AND statusId = ?";
+    private static final String SELECT_APPLICATION = "SELECT * FROM application WHERE applicationId = ?;";
 
-    public List<Application> getSeekerApplications(int accountId) throws SQLException {
+    public List<Application> getSeekerApplications(int accountId) throws DaoException {
         List<Application> applications = new ArrayList<>();
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_APPLICATIONS_OF_SEEKER)) {
             ps.setInt(1, accountId);
@@ -40,11 +42,14 @@ public class ApplicationDao {
                     applications.add(applicationFromQueryResult(rs));
                 }
             }
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, null, ex);
+            throw new DaoException();
         }
         return applications;
     }
 
-    public List<Application> getRecruiterApplications(int accountId) throws SQLException {
+    public List<Application> getRecruiterApplications(int accountId) throws DaoException {
         List<Application> applications = new ArrayList<>();
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_APPLICATIONS_OF_RECRUITER)) {
             ps.setInt(1, accountId);
@@ -53,6 +58,9 @@ public class ApplicationDao {
                     applications.add(applicationFromQueryResult(rs));
                 }
             }
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, null, ex);
+            throw new DaoException();
         }
         return applications;
     }
@@ -76,7 +84,7 @@ public class ApplicationDao {
         try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(INSERT_APPLICATION)) {
             ps.setInt(1, application.getJobId());
             ps.setInt(2, application.getResumeId());
-            ps.setDate(3, Date.valueOf(application.getCreatedTime()));
+            ps.setDate(3, Date.valueOf(application.getCreatedDate()));
             ps.setString(4, application.getMessage());
             ps.setInt(5, application.getStatusId());
 
@@ -98,12 +106,25 @@ public class ApplicationDao {
         }
     }
 
+    public Optional<Application> getApplication(int applicationId) throws DaoException {
+        try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(SELECT_APPLICATION)) {
+            ps.setInt(1, applicationId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return Optional.ofNullable(rs.next() ? applicationFromQueryResult(rs) : null);
+            }
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, null, ex);
+            throw new DaoException();
+        }
+    }
+
     private Application applicationFromQueryResult(ResultSet rs) throws SQLException {
         Application application = new Application();
         application.setApplicationId(rs.getInt("applicationId"));
         application.setJobId(rs.getInt("jobId"));
         application.setResumeId(rs.getInt("resumeId"));
         application.setMessage(rs.getString("message"));
+        application.setCreatedDate(rs.getDate("createdDate").toLocalDate());
         application.setStatusId(rs.getInt("statusId"));
         return application;
     }

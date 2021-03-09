@@ -4,23 +4,8 @@
     Author     : Admin
 --%>
 
-<%@page import="models.common.Field"%>
-<%@page import="models.common.AcademicLevel"%>
-<%@page import="models.common.Location"%>
-<%@page import="java.util.stream.Collectors"%>
-<%@page import="java.util.List"%>
-<%@page import="models.common.Language"%>
-<%@page import="models.resume.Resume"%>
-<%@page import="models.account.Account"%>
 <%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
-<%
-    Account account = (Account) request.getAttribute("account");
-    Resume resume = (Resume) request.getAttribute("resume");
-    List<Language> languages = (List<Language>) request.getAttribute("resumeLanguages");
-    Location location = (Location) request.getAttribute("resumeLocation");
-    AcademicLevel level = (AcademicLevel) request.getAttribute("resumeAcademicLevel");
-    Field field = (Field) request.getAttribute("resumeField");
-%>
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -31,20 +16,21 @@
     </head>
     <body class="bg-light">
         <%@include  file="header.jsp"%>
-        <div class="container bg-white rounded shadow m-5" style="overflow: hidden;">
+        <div class="container bg-white rounded shadow m-5 mx-auto" style="overflow: hidden;">
             <div class="row bg-dark text-white px-5 py-3" style="overflow: hidden; position: relative;">
-                <div class="col-3">
-                    <img class="img-thumbnail" src="<%=resume.getWorkDetails().getImageUri()%>" style="width: 15vw; height: 15vw; object-fit: cover;">
+                <div class="col-4 col-lg-3">
+                    <img class="img-thumbnail" src="${resume.workDetails.imageUri}" style="width: max(15vw, 25vh); height: max(15vw, 25vh); object-fit: cover;">
                 </div>
-                <div class="col-9" style="z-index: 1;">
-                    <h2><%=account.getName()%></h2>
-                    <a class="d-block mb-1" href="mailto:<%=account.getEmail()%>"><i class="far fa-envelope"></i> <%=account.getEmail()%></a>
-                    <a class="d-block mb-1" href="tel:<%=account.getPhoneNumber()%>"><i class="fas fa-phone-alt"></i> <%=account.getPhoneNumber()%></a>
-                    <p>Cập nhật lần cuối: <%=resume.getLastModified()%></p>
+                <div class="col-8 col-lg-9" style="z-index: 1;">
+                    <h2><c:out value="${account.name}"/></h2>
+                    <div><a class="my-1" href="mailto:<c:out value="${account.email}"/>"><i class="far fa-envelope"></i> <c:out value="${account.email}"/></a></div>
+                    <div><a class="d-block my-1" href="tel:<c:out value="${account.phoneNumber}"/>"><i class="fas fa-phone-alt"></i> <c:out value="${account.phoneNumber}"/></a></div>
+                    <div><a class="d-block my-1" href="resumes?accountId=${account.accountId}"><i class="fas fa-list"></i> Các lý lịch khác của tôi</a></div>
+                    <div><p class="my-1">Cập nhật lần cuối: ${resume.lastModified}</p></div>
                 </div>
                 <img src="svgs/resume_icon.svg" style="width: 30vw; height: auto; position: absolute; transform: rotate(45deg); right: 5vw; top: -5vw; z-index: 0;">
             </div>
-            <h1 class="text-center display-4 mt-5"><%=resume.getTitle()%></h1>
+            <h1 class="text-center display-4 mt-5"><c:out value="${resume.title}"/></h1>
             <div class="row p-5" >
                 <div class="col-lg-3">
                     <h3>Thông tin lý lịch</h3>
@@ -54,31 +40,31 @@
                         <tbody>
                             <tr>
                                 <th>Vị trí ứng tuyển</th>
-                                <td><%=resume.getPosition()%></td>
+                                <td><c:out value="${resume.position}"/></td>
                             </tr>
                             <tr>
                                 <th>Số năm kinh nghiệm</th>
-                                <td><%=resume.getYearOfExperience()%></td>
+                                <td><c:out value="${resume.yearOfExperience}"/></td>
                             </tr>
                             <tr>
                                 <th>Giới thiệu sơ lược</th>
-                                <td><%=resume.getBio()%></td>
+                                <td><c:out value="${resume.bio}"/></td>
                             </tr>
                             <tr>
                                 <th>Các ngôn ngữ thành thạo</th>
-                                <td><%=languages.stream().map(Language::getName).collect(Collectors.joining(", "))%></td>
+                                <td>${resumeLanguages}</td>
                             </tr>
                             <tr>
                                 <th>Nơi làm việc</th>
-                                <td><%=location.getName()%></td>
+                                <td>${resumeLocation.name}</td>
                             </tr>
                             <tr>
                                 <th>Trình độ học vấn</th>
-                                <td><%=level.getTitle()%></td>
+                                <td>${resumeAcademicLevel.title}</td>
                             </tr>
                             <tr>
                                 <th>Lĩnh vực nghề nghiệp</th>
-                                <td><%=field.getName()%></td>
+                                <td>${resumeField.name}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -89,3 +75,4 @@
         <%@include file="footer.html" %>
     </body>
 </html>
+

@@ -6,7 +6,10 @@
 package controllers;
 
 import dao.AcademicLevelDao;
+import dao.AccountDao;
+import dao.AccountDaoImpl;
 import dao.ApplicationDao;
+import dao.ApplicationStatusDao;
 import dao.CompanyDao;
 import dao.FieldDao;
 import dao.JobDao;
@@ -15,14 +18,18 @@ import dao.LanguageDao;
 import dao.LocationDao;
 import dao.ResumeDao;
 import exceptions.DaoException;
+import exceptions.ServiceException;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.ServletException;
@@ -42,6 +49,7 @@ import models.job.Company;
 import models.job.Job;
 import models.job.JobType;
 import models.resume.Resume;
+import services.EmailService;
 import utils.NotificationType;
 import utils.NotificationUtils;
 import validation.ModelValidator;
@@ -68,9 +76,13 @@ public class AdminController extends HttpServlet {
                 processRecruiterGet(request, response);
             }
         } catch (DaoException ex) {
-            request.getRequestDispatcher("error.jsp").forward(request, response);
+            sendError(request, response);
         }
 
+    }
+
+    private void sendError(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        request.getRequestDispatcher("error.jsp").forward(request, response);
     }
 
     private void processRecruiterGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
@@ -81,12 +93,6 @@ public class AdminController extends HttpServlet {
         } else {
             request.setAttribute("action", action);
             switch (action) {
-                case "notifications":
-                case "applications":
-                case "jobs":
-                    // Not implemented
-                    request.getRequestDispatcher("not_found.html").forward(request, response);
-                    break;
                 case "createjob":
                     if (hasCompanyInfo(getCurrentUser(request).getAccountId())) {
                         sendJobForm(request, response);
@@ -96,7 +102,7 @@ public class AdminController extends HttpServlet {
                     break;
                 case "editjob":
                     existingJob = jobFromRequestIdParam(request);
-                    if (existingJob.isPresent()) {
+                    if (existingJob.isPresent() && !existingJob.get().isDeleted()) {
                         sendJobEditForm(request, response, existingJob.get());
                     } else {
                         sendNotFound(request, response);
@@ -108,8 +114,17 @@ public class AdminController extends HttpServlet {
                     request.setAttribute("company", company);
                     request.getRequestDispatcher("company_form.jsp").forward(request, response);
                     break;
+                case "applications":
+                    sendApplicationAdminPage(request, response);
+                    break;
+                case "account":
+                    sendAccountAdminPage(request, response, getCurrentUser(request));
+                    break;
+                case "help":
+                    sendHelpAdminPage(request, response);
+                    break;
                 default:
-                    request.getRequestDispatcher("not_found.html").forward(request, response);
+                    sendNotFound(request, response);
             }
         }
 
@@ -130,12 +145,12 @@ public class AdminController extends HttpServlet {
             } else {
                 processRecruiterPost(request, response);
             }
-        } catch (DaoException ex) {
-            request.getRequestDispatcher("error.jsp").forward(request, response);
+        } catch (DaoException | ServiceException ex) {
+            sendError(request, response);
         }
     }
 
-    private void processRecruiterPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, NumberFormatException, DaoException {
+    private void processRecruiterPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, NumberFormatException, DaoException, ServiceException {
         String action = request.getParameter("action");
         Optional<Job> existingJob;
         if (action == null) {
@@ -148,7 +163,7 @@ public class AdminController extends HttpServlet {
                     break;
                 case "editjob":
                     existingJob = jobFromRequestIdParam(request);
-                    if (existingJob.isPresent()) {
+                    if (existingJob.isPresent() && !existingJob.get().isDeleted() && !existingJob.get().isDeleted()) {
                         editJob(request, response, existingJob.get());
                     } else {
                         sendNotFound(request, response);
@@ -156,7 +171,7 @@ public class AdminController extends HttpServlet {
                     break;
                 case "deletejob":
                     existingJob = jobFromRequestIdParam(request);
-                    if (existingJob.isPresent()) {
+                    if (existingJob.isPresent() && !existingJob.get().isDeleted()) {
                         deleteJob(response, existingJob.get());
                     } else {
                         sendNotFound(request, response);
@@ -164,6 +179,20 @@ public class AdminController extends HttpServlet {
                     break;
                 case "company":
                     saveOrUpdateCompany(request, response);
+                    break;
+                case "switchJobStatus":
+                    existingJob = jobFromRequestIdParam(request);
+                    if (existingJob.isPresent() && !existingJob.get().isDeleted()) {
+                        switchJobStatus(response, existingJob.get());
+                    } else {
+                        sendNotFound(request, response);
+                    }
+                    break;
+                case "account":
+                    updateAccount(request, response);
+                    break;
+                case "updateapplicationstatus":
+                    updateApplicationStatus(request, response);
                     break;
                 default:
                     request.getRequestDispatcher("not_found.html").forward(request, response);
@@ -179,22 +208,25 @@ public class AdminController extends HttpServlet {
         } else {
             request.setAttribute("action", action);
             switch (action) {
-                case "notifications":
-                case "applications":
-                case "jobs":
-                    // Not implemented
-                    request.getRequestDispatcher("not_found.html").forward(request, response);
-                    break;
                 case "createresume":
                     sendResumeForm(request, response);
                     break;
                 case "editresume":
                     Optional<Resume> existingResume = resumeFromRequestIdParam(request);
-                    if (existingResume.isPresent()) {
+                    if (existingResume.isPresent() && !existingResume.get().isDeleted()) {
                         sendResumeEditForm(request, response, existingResume.get());
                     } else {
                         request.getRequestDispatcher("not_found.html").forward(request, response);
                     }
+                    break;
+                case "applications":
+                    sendApplicationAdminPage(request, response);
+                    break;
+                case "account":
+                    sendAccountAdminPage(request, response, getCurrentUser(request));
+                    break;
+                case "help":
+                    sendHelpAdminPage(request, response);
                     break;
                 default:
                     sendNotFound(request, response);
@@ -202,7 +234,7 @@ public class AdminController extends HttpServlet {
         }
     }
 
-    private void processSeekerPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException {
+    private void processSeekerPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, DaoException, ServiceException {
         String action = request.getParameter("action");
         Optional<Resume> existingResume;
         Optional<Job> existingJob;
@@ -216,7 +248,7 @@ public class AdminController extends HttpServlet {
                     break;
                 case "editresume":
                     existingResume = resumeFromRequestIdParam(request);
-                    if (existingResume.isPresent()) {
+                    if (existingResume.isPresent() && !existingResume.get().isDeleted()) {
                         editResume(request, response, existingResume.get());
                     } else {
                         request.getRequestDispatcher("not_found.html").forward(request, response);
@@ -224,8 +256,8 @@ public class AdminController extends HttpServlet {
                     break;
                 case "deleteresume":
                     existingResume = resumeFromRequestIdParam(request);
-                    if (existingResume.isPresent()) {
-                        deleteResume(request, response, existingResume.get());
+                    if (existingResume.isPresent() && !existingResume.get().isDeleted()) {
+                        deleteResume(response, existingResume.get());
                     } else {
                         request.getRequestDispatcher("not_found.html").forward(request, response);
                     }
@@ -233,11 +265,25 @@ public class AdminController extends HttpServlet {
                 case "apply":
                     existingResume = resumeFromRequestIdParam(request);
                     existingJob = jobFromRequestIdParam(request);
-                    if (existingJob.isPresent() && existingResume.isPresent()) {
+                    if (existingJob.isPresent() && !existingJob.get().isDeleted() && existingResume.isPresent() && !existingResume.get().isDeleted()) {
                         applyForJob(request, response, existingJob.get().getJobId(), existingResume.get().getResumeId());
                     } else {
                         sendNotFound(request, response);
                     }
+                    break;
+                case "switchResumeStatus":
+                    existingResume = resumeFromRequestIdParam(request);
+                    if (existingResume.isPresent() && !existingResume.get().isDeleted()) {
+                        switchResumeStatus(response, existingResume.get());
+                    } else {
+                        request.getRequestDispatcher("not_found.html").forward(request, response);
+                    }
+                    break;
+                case "account":
+                    updateAccount(request, response);
+                    break;
+                case "updateapplicationstatus":
+                    updateApplicationStatus(request, response);
                     break;
                 default:
                     sendNotFound(request, response);
@@ -266,7 +312,7 @@ public class AdminController extends HttpServlet {
         resumeDao.addResume(resume);
         LanguageDao languageDao = new LanguageDao();
         languageDao.addResumeLanguage(resume.getWorkDetails().getLanguageIds(), resume.getResumeId());
-        response.sendRedirect(request.getContextPath() + "/resumes?resumeId=" + resume.getResumeId());
+        response.sendRedirect("resumes?resumeId=" + resume.getResumeId());
     }
 
     private Resume parseResume(HttpServletRequest request) throws IOException, NumberFormatException, ServletException {
@@ -374,10 +420,10 @@ public class AdminController extends HttpServlet {
         languageDao.addResumeLanguage(resume.getWorkDetails().getLanguageIds(), resume.getResumeId());
         resumeDao.updateResume(resume);
         deleteFile(getServletContext().getRealPath("") + existingResume.getWorkDetails().getImageUri());
-        response.sendRedirect(request.getContextPath() + "/resumes?resumeId=" + resume.getResumeId());
+        response.sendRedirect("resumes?resumeId=" + resume.getResumeId());
     }
 
-    private void deleteResume(HttpServletRequest request, HttpServletResponse response, Resume resume) throws ServletException, ServletException, IOException, IOException, DaoException {
+    private void deleteResume(HttpServletResponse response, Resume resume) throws ServletException, ServletException, IOException, IOException, DaoException {
         LanguageDao languageDao = new LanguageDao();
         ResumeDao resumeDao = new ResumeDao();
         languageDao.deleteResumeLanguages(resume.getResumeId());
@@ -477,7 +523,7 @@ public class AdminController extends HttpServlet {
         jobDao.addJob(job);
         LanguageDao languageDao = new LanguageDao();
         languageDao.addJobLanguage(job.getWorkDetails().getLanguageIds(), job.getJobId());
-        response.sendRedirect(request.getContextPath() + "/jobs?jobId=" + job.getJobId());
+        response.sendRedirect("jobs?jobId=" + job.getJobId());
     }
 
     private Job parseJob(HttpServletRequest request) throws ServletException, IOException {
@@ -530,7 +576,7 @@ public class AdminController extends HttpServlet {
         languageDao.addJobLanguage(job.getWorkDetails().getLanguageIds(), job.getJobId());
         jobDao.updateJob(job);
         deleteFile(getServletContext().getRealPath("") + existingJob.getWorkDetails().getImageUri());
-        response.sendRedirect(request.getContextPath() + "/jobs?jobId=" + job.getJobId());
+        response.sendRedirect("jobs?jobId=" + job.getJobId());
     }
 
     private Optional<Resume> resumeFromRequestIdParam(HttpServletRequest request) throws DaoException {
@@ -562,22 +608,175 @@ public class AdminController extends HttpServlet {
         response.sendRedirect("admin");
     }
 
-    private void applyForJob(HttpServletRequest request, HttpServletResponse response, int jobId, int resumeId) throws DaoException, ServletException, IOException {
+    private void applyForJob(HttpServletRequest request, HttpServletResponse response, int jobId, int resumeId) throws DaoException, ServletException, IOException, ServiceException {
         Application application = new Application();
         application.setJobId(jobId);
         application.setResumeId(resumeId);
-        application.setCreatedTime(LocalDate.now());
+        application.setCreatedDate(LocalDate.now());
         application.setMessage(request.getParameter("message"));
         application.setStatusId(ApplicationStatus.PENDING);
-
-        System.out.println("applyforjob called");
 
         ApplicationDao applicationDao = new ApplicationDao();
         if (applicationDao.checkApplicationStatus(jobId, resumeId, ApplicationStatus.PENDING)) {
             response.sendRedirect("jobs?jobId=" + jobId + "&notif=1");
         } else {
             applicationDao.addApplication(application);
-            response.sendRedirect("jobs?jobId=" + jobId + "&notif=2");
+            sendNewApplicationEmail(jobId, request);
+            response.sendRedirect("admin?action=applications");
         }
     }
+
+    private void sendNewApplicationEmail(int jobId, HttpServletRequest request) throws DaoException, ServiceException {
+        AccountDao accountDao = new AccountDaoImpl();
+        JobDao jobDao = new JobDao();
+        Job job = jobDao.getJob(jobId).get();
+        Account jobOwner = accountDao.getAccountById(job.getAccountId()).get();
+        EmailService emailService = new EmailService();
+        emailService.sendHtmlMail(jobOwner.getEmail(), "Bạn có một đơn ứng tuyển mới", "Xin chào " + jobOwner.getName() + ", bài đăng công việc " + job.getTitle() + " vừa nhận được một đơn ứng tuyển. Bấm vào link sau đây để xem ngay: http://localhost:8080/SE1502_ASSIGNMENT_GROUP_7/admin?action=applications");
+    }
+
+    private void switchResumeStatus(HttpServletResponse response, Resume resume) throws DaoException, IOException {
+        ResumeDao resumeDao = new ResumeDao();
+        resumeDao.switchResumeStatus(resume.getResumeId());
+        response.sendRedirect("admin");
+    }
+
+    private void switchJobStatus(HttpServletResponse response, Job job) throws DaoException, IOException {
+        JobDao jobDao = new JobDao();
+        jobDao.switchJobStatus(job.getJobId());
+        response.sendRedirect("admin");
+    }
+
+    private void sendApplicationAdminPage(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException, DaoException {
+        ApplicationDao applicationDao = new ApplicationDao();
+
+        Account userAccount = getCurrentUser(request);
+        boolean isJobSeeker = userAccount.getAccountTypeId() == AccountType.JOB_SEEKER;
+
+        List<Application> applications = isJobSeeker
+                ? applicationDao.getSeekerApplications(userAccount.getAccountId())
+                : applicationDao.getRecruiterApplications(userAccount.getAccountId());
+        request.setAttribute("applications", applications);
+
+        Map<Integer, Job> jobMappings = new HashMap<>();
+        JobDao jobDao = new JobDao();
+
+        for (Application application : applications) {
+            jobMappings.put(application.getJobId(), jobDao.getJob(application.getJobId()).get());
+        }
+        request.setAttribute("jobMappings", jobMappings);
+
+        Map<Integer, Resume> resumeMappings = new HashMap<>();
+        ResumeDao resumeDao = new ResumeDao();
+
+        for (Application application : applications) {
+            resumeMappings.put(application.getResumeId(), resumeDao.getResume(application.getResumeId()).get());
+        }
+        request.setAttribute("resumeMappings", resumeMappings);
+
+        ApplicationStatusDao applicationStatusDao = new ApplicationStatusDao();
+        List<ApplicationStatus> applicationStatuses = applicationStatusDao.getAllApplicationStatues();
+
+        request.setAttribute("applicationStatuses", applicationStatuses);
+
+        request.getRequestDispatcher("admin_" + (isJobSeeker ? "seeker" : "recruiter") + ".jsp").forward(request, response);
+
+    }
+
+    private void sendAccountAdminPage(HttpServletRequest request, HttpServletResponse response, Account account) throws ServletException, IOException {
+        request.setAttribute("inputAccount", account);
+        boolean isJobSeeker = account.getAccountTypeId() == AccountType.JOB_SEEKER;
+        request.getRequestDispatcher("admin_" + (isJobSeeker ? "seeker" : "recruiter") + ".jsp").forward(request, response);
+    }
+
+    private Account accountFromRequestParams(HttpServletRequest request) throws IOException, ServletException {
+        Account account = new Account();
+        account.setEmail(request.getParameter("email"));
+        account.setAccountId(Integer.parseInt(request.getParameter("accountId")));
+        account.setName(request.getParameter("name"));
+        account.setImageUri(savePart(request.getPart("image")));
+        account.setPhoneNumber(request.getParameter("phoneNumber"));
+        return account;
+    }
+
+    private void updateAccount(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException, DaoException {
+        Account account = accountFromRequestParams(request);
+        ModelValidator md = new ModelValidator();
+        Map<String, String> constraints = md.validate(account);
+
+        if (!constraints.isEmpty()) {
+            request.setAttribute("constraints", constraints);
+            deleteFile(account.getImageUri());
+            account.setAccountTypeId(getCurrentUser(request).getAccountTypeId());
+            sendAccountAdminPage(request, response, account);
+            return;
+        }
+
+        AccountDao accountDao = new AccountDaoImpl();
+        accountDao.updateAccount(account);
+        updateCurrentAccount(request, account);
+        NotificationUtils.setNotification(request, NotificationType.success, "Cập nhật thông tin thành công");
+        sendAccountAdminPage(request, response, getCurrentUser(request));
+    }
+
+    private void updateCurrentAccount(HttpServletRequest request, Account account) {
+        Account currentAccount = getCurrentUser(request);
+        // Delete if not using default avatar image
+        if (!currentAccount.getImageUri().equals("images/avatar.png")) {
+            deleteFile(currentAccount.getImageUri());
+        }
+        currentAccount.setImageUri(account.getImageUri());
+        currentAccount.setName(account.getName());
+        currentAccount.setPhoneNumber(account.getPhoneNumber());
+    }
+
+    private void sendHelpAdminPage(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        boolean isJobSeeker = getCurrentUser(request).getAccountTypeId() == AccountType.JOB_SEEKER;
+        request.getRequestDispatcher("admin_" + (isJobSeeker ? "seeker" : "recruiter") + ".jsp").forward(request, response);
+    }
+
+    private void updateApplicationStatus(HttpServletRequest request, HttpServletResponse response) throws ServletException, DaoException, IOException, ServiceException {
+        int applicationId = Integer.parseInt(request.getParameter("applicationId"));
+        int statusId = Integer.parseInt(request.getParameter("statusId"));
+
+        ApplicationDao applicationDao = new ApplicationDao();
+        Optional<Application> opApplication = applicationDao.getApplication(applicationId);
+        if (!opApplication.isPresent()) {
+            sendNotFound(request, response);
+            return;
+        }
+
+        if (opApplication.get().getStatusId() != ApplicationStatus.PENDING
+                || isUnauthorizedApplicationAction(getCurrentUser(request), statusId)) {
+            sendUnauthorized(request, response);
+            return;
+        }
+
+        // Application is accepted, notify job seeker
+        if (statusId == ApplicationStatus.ACCEPTED || statusId == ApplicationStatus.REJECTED) {
+            sendApplicationResultEmail(opApplication.get(), request);
+        }
+        applicationDao.updateApplicationStatus(applicationId, statusId);
+        response.sendRedirect("admin?action=applications");
+    }
+
+    private void sendApplicationResultEmail(Application application, HttpServletRequest request) throws DaoException, ServiceException {
+        ResumeDao resumeDao = new ResumeDao();
+        AccountDao accountDao = new AccountDaoImpl();
+        EmailService emailService = new EmailService();
+        Resume resume = resumeDao.getResume(application.getResumeId()).get();
+        Account resumeOwner = accountDao.getAccountById(resume.getAccountId()).get();
+        emailService.sendHtmlMail(resumeOwner.getEmail(), "Đơn ứng tuyển của bạn đã được duyệt", "Chào " + resumeOwner.getName() + ", một trong những đơn ứng tuyển của bạn đã có kết quả duyệt, bấm vào link sau đây để xem ngay: http://localhost:8080/SE1502_ASSIGNMENT_GROUP_7/admin?action=applications");
+    }
+
+    private void sendUnauthorized(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        request.getRequestDispatcher("unauthorized.html").forward(request, response);
+    }
+
+    private static boolean isUnauthorizedApplicationAction(Account currentAccount, int statusId) {
+        // Check if the user is authorized for the action and that given status is applicable to the selected application
+        return (currentAccount.getAccountTypeId() == AccountType.JOB_SEEKER && statusId != ApplicationStatus.CANCELED)
+                || (currentAccount.getAccountTypeId() == AccountType.RECRUITER && statusId != ApplicationStatus.ACCEPTED && statusId != ApplicationStatus.REJECTED);
+    }
+
 }

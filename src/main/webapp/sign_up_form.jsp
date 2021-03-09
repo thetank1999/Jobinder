@@ -4,20 +4,9 @@
     Author     : Admin
 --%>
 
-<%@page import="java.util.Map"%>
-<%@page import="models.account.Account"%>
-<%@page import="java.util.List"%>
-<%@page import="models.account.AccountType"%>
 <%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
-<%
-    Account account = (Account) request.getAttribute("account");
-    List<AccountType> accountTypes = (List<AccountType>) request.getAttribute("accountTypes");
-    Map<String, String> constraints = (Map<String, String>) request.getAttribute("constraints");
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-    boolean invalidEmail = constraints != null && constraints.containsKey("email");
-    boolean invalidPassword = constraints != null && constraints.containsKey("password");
-    boolean invalidPhoneNumber = constraints != null && constraints.containsKey("phoneNumber");
-%>
 <!DOCTYPE html>
 <html>
     <head>
@@ -35,40 +24,40 @@
                     <form action="signup" method="POST">
                         <fieldset class="form-group">
                             <label for="email">Email</label>
-                            <input type="email" class="form-control<%=invalidEmail ? " is-invalid" : ""%>" id="email" name="email" value="<%=account != null ? account.getEmail() : ""%>" required /> 
-                            <%if (invalidEmail) {%>
-                            <div class="invalid-feedback">
-                                <%=constraints.get("email")%>
-                            </div>
-                            <%}%>
+                            <input type="email" class="form-control <c:if test="${not empty constraints.email}">is-invalid</c:if>" id="email" name="email" value="<c:out value="${inputAccount.email}"/>" required /> 
+                            <c:if test="${not empty constraints.email}">
+                                <div class="invalid-feedback">
+                                    ${constraints.email}
+                                </div>
+                            </c:if>
                         </fieldset>
                         <fieldset class="form-group mt-3">
                             <label for="password">Mật khẩu</label>
-                            <input type="password" class="form-control<%=invalidPassword ? " is-invalid" : ""%>" id="password" name="password" value="<%=account != null ? account.getPassword() : ""%>" required />
-                            <%if (invalidPassword) {%>
-                            <div class="invalid-feedback">
-                                <%=constraints.get("password")%>
-                            </div>
-                            <%}%>
+                            <input type="password" class="form-control <c:if test="${not empty constraints.password}">is-invalid</c:if>" id="password" name="password" value="<c:out value="${inputAccount.password}"/>" required />
+                            <c:if test="${not empty constraints.password}">
+                                <div class="invalid-feedback">
+                                    ${constraints.password}
+                                </div>
+                            </c:if>
                         </fieldset>
                         <fieldset class="form-group mt-3">
                             <label for="phoneNumber">Số điện thoại</label>
-                            <input type="text" class="form-control<%=invalidPhoneNumber ? " is-invalid" : ""%>" id="phoneNumber" name="phoneNumber" value="<%=account != null ? account.getPhoneNumber() : ""%>" required />
-                            <%if (invalidPhoneNumber) {%>
-                            <div class="invalid-feedback">
-                                <%=constraints.get("phoneNumber")%>
-                            </div>
-                            <%}%>
+                            <input type="text" class="form-control <c:if test="${not empty constraints.phoneNumber}">is-invalid</c:if>" id="phoneNumber" name="phoneNumber" value="<c:out value="${inputAccount.phoneNumber}"/>" required />
+                            <c:if test="${not empty constraints.phoneNumber}">
+                                <div class="invalid-feedback">
+                                    ${constraints.phoneNumber}
+                                </div>
+                            </c:if>
                         </fieldset>
                         <fieldset class="form-group mt-3">
                             <label for="name">Họ tên</label>
-                            <input type="text" class="form-control" id="name" name="name" value="<%=account != null ? account.getName() : ""%>" required />
+                            <input type="text" class="form-control" id="name" name="name" value="<c:out value="${inputAccount.name}"/>" required />
                         </fieldset>
                         <label class="mt-3" for="accountType">Bạn là</label>
                         <select id="accountType" class="form-select" name="accountType">
-                            <%for (AccountType type : accountTypes) {%>
-                            <option <%=account != null && account.getAccountTypeId() == type.getAccountTypeId() ? "selected" : ""%> value="<%=type.getAccountTypeId()%>"><%=type.getName()%></option>
-                            <%}%>
+                            <c:forEach var="type" items="${accountTypes}">
+                                <option <c:if test="${not empty inputAccount && inputAccount.accountTypeId == type.accountTypeId}">selected</c:if>" value="${type.accountTypeId}">${type.name}</option>
+                            </c:forEach>
                         </select>
                         <%@include file="notification.jsp" %>
                         <button type="submit" class="mt-2 btn btn-primary" >Tạo tài khoản</button>
@@ -76,6 +65,7 @@
                 </div>
             </div>
         </div>
+        <%@include file="back_to_top.html" %>
         <%@include file="footer.html" %>
     </body>
 </html>

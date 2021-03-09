@@ -6,8 +6,10 @@
 package utils;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
 
 /**
  *
@@ -15,15 +17,10 @@ import java.sql.SQLException;
  */
 public class JDBCUtils {
 
-    private static final String JDBCURL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=SE1502_ASSIGNMENT_GROUP_7;";
-    private static final String USERNAME = "sa";
-    private static final String PASSWORD = "sa";
-
     public static Connection getConnection() {
         try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            return DriverManager.getConnection(JDBCURL, USERNAME, PASSWORD);
-        } catch (SQLException | ClassNotFoundException e) {
+            return ((DataSource) new InitialContext().lookup("java:comp/env/AssignmentDB")).getConnection();
+        } catch (SQLException | NamingException e) {
             System.out.println(e.getCause());
         }
         return null;

@@ -19,6 +19,9 @@ public class Account implements Serializable {
 
     private String name;
 
+    @RegexMatch(regex = ".*\\.(jpg|png|jpeg)$", name = "image", message = "File ảnh không hợp lệ, chấp nhận png, jpeg và jpg")
+    private String imageUri;
+
     private boolean activated = false;
 
     @RegexMatch(regex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$",
@@ -98,6 +101,14 @@ public class Account implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setImageUri(String imageUri) {
+        this.imageUri = imageUri;
+    }
+
+    public String getImageUri() {
+        return imageUri;
     }
 
 }

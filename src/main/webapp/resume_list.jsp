@@ -5,12 +5,9 @@
 --%>
 
 <%@page import="utils.CurrencyUtils"%>
-<%@page import="java.util.List"%>
-<%@page import="models.resume.Resume"%>
+<%@taglib prefix="mf" uri="/WEB-INF/myfuncs" %>
 <%@page contentType="text/html" pageEncoding="UTF-8" errorPage="error.jsp"%>
-<%
-    List<Resume> resumes = (List<Resume>) request.getAttribute("resumes");
-%>
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -25,44 +22,44 @@
             <div class="row mb-3">
                 <%@include file="resume_filter.jsp" %>
                 <div class="container d-flex col-lg-8 flex-column justify-content-start align-items-center">
-                    <%for (Resume resume : resumes) {%>
-                    <div class="card shadow min mt-2" style="width: 95%">
-                        <div class="card-body" style="padding: 20px 20px 0 20px">
-                            <div class="d-flex">
-                                <img class="img-fluid img-thumbnail" style="width: 12vw; height: 12vw; object-fit: cover;" src="<%=resume.getWorkDetails().getImageUri()%>">
-                                <div class="px-3">
-                                    <h4 class="card-text mx-2"><a style="text-decoration: none; color: black;" href="resumes?resumeId=<%=resume.getResumeId()%>"><%=resume.getTitle()%></a></h4>
-                                    <p class="card-text text-secondary mx-2"><%=resume.getBio().length() < 45 ? resume.getBio() : (resume.getBio().substring(0, 42) + "...")%></p>
-                                    <div class="d-flex">
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="far text-warning fa-clock"></i> <%=resume.getPosition().length() < 25 ? resume.getPosition() : (resume.getPosition().substring(0, 22) + "...")%>
-                                        </p>
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas text-warning fa-map-marker-alt ml-2"></i> <%=((List<Location>) request.getAttribute("locations")).stream().filter(lc -> lc.getLocationId() == resume.getWorkDetails().getLocationId()).findFirst().get().getName()%>
-                                        </p>
-                                    </div>
-                                    <div class="d-flex">
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas text-warning fa-briefcase"></i> <%=((List<Field>) request.getAttribute("fields")).stream().filter(fi -> fi.getFieldId() == resume.getWorkDetails().getFieldId()).findFirst().get().getName()%>
-                                        </p>
-                                        <p class="card-text text-secondary mx-2">
-                                            <i class="fas fa-layer-group text-warning"></i> <%=resume.getYearOfExperience()%> năm kinh nghiệm
-                                        </p>
+                    <c:forEach var="resume" items="${resumes}">
+                        <div class="card shadow min mt-2" style="width: 95%">
+                            <div class="card-body" style="padding: 20px 20px 0 20px">
+                                <div class="d-flex">
+                                    <img class="img-fluid img-thumbnail" style="width: 12vw; height: 12vw; object-fit: cover;" src="<c:out value="${resume.workDetails.imageUri}"/>">
+                                    <div class="px-3">
+                                        <h4 class="card-text mx-2"><a style="text-decoration: none; color: black;" href="resumes?resumeId=<c:out value="${resume.resumeId}"/>"><c:out value="${resume.title}"/></a></h4>
+                                        <p class="card-text text-secondary mx-2"><c:out value="${mf:ellipsis(45, resume.bio)}" /></p>
+                                        <div class="d-flex">
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="far text-warning fa-clock"></i> ${mf:ellipsis(20, resume.position)}
+                                            </p>
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas text-warning fa-map-marker-alt ml-2"></i> ${locations[resume.workDetails.locationId].name}
+                                            </p>
+                                        </div>
+                                        <div class="d-flex">
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas text-warning fa-briefcase"></i> ${fields[resume.workDetails.fieldId].name}
+                                            </p>
+                                            <p class="card-text text-secondary mx-2">
+                                                <i class="fas fa-layer-group text-warning"></i> <c:out value="${resume.yearOfExperience}"/> năm kinh nghiệm
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <hr style="margin-bottom:0;"/>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <p class="text-secondary my-2"><i class="far text-warning fa-calendar-alt"></i> Cập nhật: <%=resume.getLastModified()%></p>
-                                <p class="text-secondary my-2"><i class="fas fa-chart-line text-warning"></i> Lượt xem: <%=resume.getViews()%></p>
-                                <a class="my-2 btn btn-link text-secondary" style="text-decoration: none;" href="<%=request.getContextPath() + "/resumes?resumeId=" + resume.getResumeId()%>">Xem chi tiết</a>
+                                <hr style="margin-bottom:0;"/>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <p class="text-secondary my-2"><i class="far text-warning fa-calendar-alt"></i> Cập nhật: ${resume.lastModified}</p>
+                                    <p class="text-secondary my-2"><i class="fas fa-chart-line text-warning"></i> Lượt xem: ${resume.views}</p>
+                                    <a class="my-2 btn btn-link text-secondary" style="text-decoration: none;" href="resumes?resumeId=${resume.resumeId}">Xem chi tiết</a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <%}%>
-                    <%if (resumes.size() == 0) {%>
-                    <p class="mt-3" style="color: graytext">Không có lý lịch nào được tìm thấy</p>
-                    <%}%>
+                    </c:forEach>
+                    <c:if test="${resumes.size() == 0}">
+                        <p class="mt-3" style="color: graytext">Không có lý lịch nào được tìm thấy</p>
+                    </c:if>
                 </div>
             </div>
         </div>

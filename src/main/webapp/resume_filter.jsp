@@ -3,20 +3,9 @@
     Created on : Feb 20, 2021, 9:38:59 PM
     Author     : Admin
 --%>
-
-<%@page import="java.util.ArrayList"%>
-<%@page import="java.util.Optional"%>
-<%@page import="models.common.AcademicLevel"%>
-<%@page import="models.common.Field"%>
-<%@page import="models.common.Location"%>
-<%@page import="models.common.Language"%>
-<%@page import="java.util.List"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%
-    Integer ftAccountId = (Integer) request.getAttribute("accountId");
-    String ftKeyword = (String) request.getAttribute("keyword");
-    Integer ftMinYearOfExperience = (Integer) request.getAttribute("minYearOfExperience");
-%>
+
 <!DOCTYPE html>
 <div class="shadow card col-lg-4 p-0 mt-2">
     <style scoped>
@@ -37,22 +26,22 @@
                 <div class="form-row col-md-10">
                     <div class="form-group">
                         <label class="form-label d-block" for="accountId">Tài khoản ID</label>
-                        <input type="number" id="accountId" value="<%=ftAccountId != null ? ftAccountId : ""%>" name="accountId" class="form-control w-100" />
+                        <input type="number" id="accountId" value="<c:out value="${accountId}"/>" name="accountId" class="form-control w-100" />
                     </div>
                 </div>
                 <div class="form-row col-md-10">
                     <div class="form-group">
                         <label class="form-label d-block" for="keyword">Từ khóa</label>
-                        <input type="search" value="<%=ftKeyword != null ? ftKeyword : ""%>" id="keyword" name="keyword" class="form-control w-100" />
+                        <input type="search" value="<c:out value="${keyword}"/>" id="keyword" name="keyword" class="form-control w-100" />
                     </div>
                 </div>
                 <div class="form-row col-md-10">
                     <div class="form-group">
                         <label for="minYearOfExperience">Năm kinh nghiệm tối thiểu</label>
-                        <input type="number" step="1" min="0" name="minYearOfExperience" value="<%=ftMinYearOfExperience != null ? ftMinYearOfExperience : ""%>" type="number" class="form-control" id="minYearOfExperience">
+                        <input type="number" step="1" min="0" name="minYearOfExperience" value="<c:out value="${minYearOfExperience}"/>" type="number" class="form-control" id="minYearOfExperience">
                     </div>
                 </div>
-                <%@include file="workDetail_filter.jsp" %>
+                <%@include file="workDetails_filter.jsp" %>
                 <div class="form-row col-md-10 mt-2">
                     <button onclick="submitFilterForm()" class="btn btn-dark w-100 text-center">Tìm kiếm <i class="fas fa-search"></i></button>
                 </div>

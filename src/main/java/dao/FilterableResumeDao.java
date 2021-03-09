@@ -145,7 +145,7 @@ public class FilterableResumeDao {
             parameterizers.add(new IntegerParameterizer(minLevelId));
         }
 
-        query = query + (!subQueryStrings.isEmpty() ? "WHERE " : "") + String.join(" AND ", subQueryStrings) + ";";
+        query = query + "WHERE " + String.join(" AND ", subQueryStrings) + (!subQueryStrings.isEmpty() ? " AND " : "") + "status = 1 AND deleted = 0;";
 
         System.out.println(query);
 
@@ -193,6 +193,7 @@ public class FilterableResumeDao {
         resume.setYearOfExperience(rs.getInt("yearOfExperience"));
         resume.setStatus(rs.getBoolean("status"));
         resume.setViews(rs.getInt("views"));
+        resume.setDeleted(rs.getBoolean("deleted"));
 
         return resume;
     }

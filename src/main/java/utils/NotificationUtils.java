@@ -12,12 +12,10 @@ import javax.servlet.http.HttpServletRequest;
  * @author Admin
  */
 public class NotificationUtils {
-    public static final String TYPE_KEY = "NOTIFICATION_TYPE";
-    public static final String NOTIFICATION_KEY = "NOTIFICATION";
 
     public static void setNotification(HttpServletRequest request, NotificationType type, String content) {
-        request.setAttribute(TYPE_KEY, getTypeRepr(type));
-        request.setAttribute(NOTIFICATION_KEY, content);
+        request.setAttribute("notificationType", getTypeRepr(type));
+        request.setAttribute("notification", content);
     }
 
     static private String getTypeRepr(NotificationType type) {

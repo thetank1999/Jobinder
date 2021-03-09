@@ -30,6 +30,7 @@ public class AccountDaoImpl implements AccountDao {
     private static final String RESET_PASSWORD = "UPDATE account SET password = ? WHERE accountId = ?;";
     private static final String SELECT_ACCOUNT_BY_ID = "SELECT * FROM account WHERE accountId = ?;";
     private static final String SELECT_ACCOUNT_BY_EMAIL = "SELECT * FROM account WHERE email = ?;";
+    private static final String UPDATE_ACCOUNT = "UPDATE account SET phoneNumber = ?, name = ?, imageUri = ? WHERE accountId = ?";
 
     @Override
     public void createAccount(Account account) throws DaoException {
@@ -107,9 +108,25 @@ public class AccountDaoImpl implements AccountDao {
         account.setEmail(rs.getString("email"));
         account.setPassword(rs.getString("password"));
         account.setDateJoined(rs.getDate("dateJoined").toLocalDate());
+        account.setImageUri(rs.getString("imageUri"));
         account.setAccountTypeId(rs.getInt("accountTypeId"));
         account.setPhoneNumber(rs.getString("phoneNumber"));
         account.setName(rs.getString("name"));
         return account;
+    }
+
+    @Override
+    public void updateAccount(Account account) throws DaoException {
+        try (Connection c = JDBCUtils.getConnection(); PreparedStatement ps = c.prepareStatement(UPDATE_ACCOUNT)) {
+            ps.setString(1, account.getPhoneNumber());
+            ps.setString(2, account.getName());
+            ps.setString(3, account.getImageUri());
+            ps.setInt(4, account.getAccountId());
+
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, ex.getMessage());
+            throw new DaoException();
+        }
     }
 }
