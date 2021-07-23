@@ -72,6 +72,8 @@ public class SignUpController extends HttpServlet {
                 doGet(request, response);
                 return;
             }
+            
+            account.setPassword(EncryptionService.encrypt(account.getPassword()));
 
             accountDao.createAccount(account);
 
@@ -97,7 +99,7 @@ public class SignUpController extends HttpServlet {
         return token;
     }
 
-    private Account accountFromRequestParams(HttpServletRequest request) throws NumberFormatException, NoSuchAlgorithmException {
+    private Account accountFromRequestParams(HttpServletRequest request) throws NumberFormatException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
         String phoneNumber = request.getParameter("phoneNumber");
@@ -105,7 +107,7 @@ public class SignUpController extends HttpServlet {
         int accountTypeId = Integer.parseInt(request.getParameter("accountType"));
         Account account = new Account();
         account.setEmail(email);
-        account.setPassword(EncryptionService.encrypt(password));
+        account.setPassword(password);
         account.setActivated(false);
         account.setPhoneNumber(phoneNumber);
         account.setAccountTypeId(accountTypeId);
